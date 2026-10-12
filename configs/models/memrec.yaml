@@ -1,13 +1,6 @@
-implementation: upstream_components
-adapter_version: 0.1.0
-upstream_commit: 58d9031ed91c623b8034d2bf04f39aa937424c33
 k: 16
 tau_tokens: 1800
 n_facets: 7
 mix_min_users: 4
 mix_min_items: 6
 fanout_cap: 8
-warmup_rounds: 1
-pruner: llm_rules
-reranker: llm
-test_observe: false

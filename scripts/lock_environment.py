@@ -13,7 +13,6 @@ pending = [
     "numpy",
     "pandas",
     "pyarrow",
-    "openai",
     "pytest",
     "ruff",
     "setuptools",

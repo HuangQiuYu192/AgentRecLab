@@ -3,11 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from agentreclab.core.config import ROOT, load_run
-from agentreclab.core.runner import run_experiment
-from agentreclab.data.fixtures import make_fixture
-from agentreclab.eval.compare import compare_runs
-from agentreclab.state.snapshot import read_json, write_json
+from agentreclab.config import ROOT, load_run
+from agentreclab.data import make_fixture
+from agentreclab.evaluation import compare_runs
+from agentreclab.runner import run_experiment
+from agentreclab.storage import read_json, write_json
 
 
 def config(tmp_path, model, n=10):
@@ -21,7 +21,7 @@ def config(tmp_path, model, n=10):
 
 
 @pytest.mark.parametrize("model,expected_calls", [("iagent", 20), ("i2agent", 50), ("memrec", 50)])
-def test_upstream_end_to_end_and_resume(tmp_path, model, expected_calls):
+def test_native_end_to_end_and_resume(tmp_path, model, expected_calls):
     cfg = config(tmp_path, model)
     result = asyncio.run(run_experiment(cfg))
     assert result["status"] == "completed", result

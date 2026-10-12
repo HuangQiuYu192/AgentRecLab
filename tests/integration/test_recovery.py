@@ -7,14 +7,11 @@ import pytest
 from typer.testing import CliRunner
 
 from agentreclab.cli import app
-from agentreclab.core.config import ROOT, load_run
-from agentreclab.core.runner import run_experiment
-from agentreclab.data.fixtures import make_fixture
-from agentreclab.providers.mock import MockProvider
-from agentreclab.state.snapshot import digest
-from agentreclab.state.store import StateStore
-from agentreclab.tracing.cache import TracedProvider
-from agentreclab.tracing.recorder import Recorder
+from agentreclab.config import ROOT, load_run
+from agentreclab.data import make_fixture
+from agentreclab.llm import MockProvider, TracedProvider
+from agentreclab.runner import run_experiment
+from agentreclab.storage import Recorder, StateStore, digest
 
 
 def test_interrupted_case_uses_durable_response_replay(tmp_path):
@@ -28,7 +25,7 @@ def test_interrupted_case_uses_durable_response_replay(tmp_path):
     store.close()
     second = asyncio.run(run_experiment(cfg, resume=True))
     assert second["metrics"]["total_calls"] == first["metrics"]["total_calls"]
-    assert second["metrics"]["cache_hits"] == 2
+    assert second["metrics"]["cache_hits"] - first["metrics"]["cache_hits"] == 2
     assert second["metrics"]["exclude"] == first["metrics"]["exclude"]
     assert len((directory / "predictions.jsonl").read_text(encoding="utf-8").splitlines()) == 10
 
@@ -61,7 +58,7 @@ def test_invalid_response_does_not_become_success(tmp_path, monkeypatch, mode):
                 return replace(result, text=json.dumps(value))
             return result
 
-    monkeypatch.setattr("agentreclab.core.runner.create", lambda config: Invalid())
+    monkeypatch.setattr("agentreclab.runner.create", lambda config: Invalid())
     cfg = load_run(ROOT / "configs/runs/smoke_books.yaml")
     cfg.update(manifest=str(make_fixture(tmp_path / "data")), outputs=str(tmp_path / "runs"))
     result = asyncio.run(run_experiment(cfg))

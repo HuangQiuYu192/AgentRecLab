@@ -1,89 +1,63 @@
 # AgentRecLab
 
-指令感知推荐的可审计离线实验框架。iAgent、i²Agent 直接包装官方类；MemRec
-调用官方 graph、domain rules、packer、manager、reranker 和 Stage-W。
-默认采用合成数据和 mock LLM，不需要 API Key。MARS 为 `experimental/not_ready`。
+精简的指令感知推荐实验框架。**iAgent、i²Agent、MemRec 均在项目内原生实现**，运行和普通测试不下载、不导入官方模型代码。默认使用合成数据和 mock LLM。
 
-**当前验证是基础设施与上游适配器验证，不是论文指标复现。**
-真实 InstructRec 对齐和付费实验尚未完成；详见 [风险清单](docs/reproduction_risks.md)。
+## 目录
 
-## 10 分钟 quickstart
+```text
+src/agentreclab/
+  cli.py          命令行入口
+  config.py       实验和 provider 配置
+  schema.py       数据结构
+  data.py         数据转换、冻结、校验、读取
+  models/
+    base.py       JSON 调用、ID 映射和状态保存
+    iagent.py     iAgent 与 i²Agent
+    memrec.py     训练图、邻居规则、记忆读写和重排
+    __init__.py   三个模型的简单注册表
+  llm.py          mock / HTTP、JSON 校验、缓存和预算
+  storage.py      SQLite、快照和请求日志
+  runner.py       准备、运行、恢复和输出
+  evaluation.py  排名指标与配对比较
+configs/          实验、provider、数据配置；模型参数仅 MemRec 需要
+tests/            单元与集成测试；reference/ 为可选原版对照
+scripts/          验收、依赖锁定和可选参考源码获取
+docs/             调用流程、重实现边界和验收记录
+```
 
-Python 3.11+；本机已在 Python 3.12.14 验证。Windows PowerShell：
+13 个 Python 源文件，无同步桥接、动态加载或额外在线协议层。
+
+## 运行
+
+Python 3.11+，Windows PowerShell：
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e '.[dev]'
-.\.venv\Scripts\python.exe scripts/setup_upstream.py
 .\.venv\Scripts\agentreclab.exe doctor
 .\.venv\Scripts\agentreclab.exe data fixture
-.\.venv\Scripts\agentreclab.exe validate --manifest datasets/fixtures/books/dataset_manifest.json
 .\.venv\Scripts\agentreclab.exe run --config configs/runs/smoke_books.yaml --model iagent
 .\.venv\Scripts\agentreclab.exe run --config configs/runs/smoke_books.yaml --model i2agent
 .\.venv\Scripts\agentreclab.exe run --config configs/runs/smoke_books.yaml --model memrec
 .\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m ruff check src tests scripts
 ```
 
-Linux/macOS 使用 `.venv/bin/python`、`.venv/bin/agentreclab`。
-`requirements.lock` 保存本次验证依赖；可先 `pip install -r requirements.lock` 再安装项目。
-上游首次下载需要联网；之后 fixture/mock 的运行和测试均不访问外部 API。
-同一 run_id 再次运行必须加 `--resume`；配置、代码、数据变化会拒绝恢复。
+Linux/macOS 使用 `.venv/bin/python`、`.venv/bin/agentreclab`。完整 10/100 样例验收：`python scripts/acceptance.py --prefix my_validation`。重复运行使用新 run ID；恢复已有实验加 `--resume`。配置、数据或代码变化会拒绝恢复旧实验。
 
-```powershell
-.\.venv\Scripts\agentreclab.exe run --config configs/runs/smoke_books.yaml --model iagent --resume
-.\.venv\Scripts\agentreclab.exe run --config configs/runs/books_1k.yaml --model memrec --dry-run
-.\.venv\Scripts\agentreclab.exe evaluate --run outputs/runs/smoke_books_iagent
-.\.venv\Scripts\agentreclab.exe compare --runs outputs/runs/smoke_books_iagent --runs outputs/runs/smoke_books_i2agent --runs outputs/runs/smoke_books_memrec --paired-only
-.\.venv\Scripts\agentreclab.exe report --run outputs/runs/smoke_books_memrec --out outputs/reports/smoke_books_memrec.md
-```
+## iAgent 调用流程
 
-`compare` 以重复 `--runs` 指定多个目录。候选顺序、标签、case IDs、历史、训练快照
-或 provider 条件不一致时，严格配对比较会拒绝运行。
+`cli.py → config.py → runner.py → data.py → models/iagent.py → llm.py → storage.py → evaluation.py`
 
-## 数据与协议
+iAgent 每样例两次逻辑 LLM 调用：根据指令生成知识，结合历史和候选重排。
+i²Agent 为五次：模拟训练推荐 → 训练反馈画像 → 知识 → 动态兴趣/画像 → 重排。
+MemRec 先完成训练记忆预热，再读取邻居、提取偏好、重排；测试阶段不写记忆。重复请求可命中缓存，实际请求数可能少于逻辑调用数。
 
-原始数据来源：[iAgent 官方 README 的 InstructRec 下载链接](https://github.com/agiresearch/iAgent#-dataset-preparation)。
-下载时自行确认数据访问与许可；两份上游代码在固定版本中未发现许可证文件，许可标为 unknown，
-本仓库只提交 URL/commit，不复制或重新许可上游源码及真实用户文本。
+## 实验边界
 
-将 `booksAll_recagent.pkl`、`combined_books_asin_mapping.csv` 放在 `datasets/raw/books/`。
-核对 `configs/data/books.yaml` 的字段映射，只有来源可信时才设置 `trusted_pickle: true`
-（pickle 读取会执行代码）。缺少原始 user ID 时保留 row namespace，并明确记录 unknown。
-支持 books、movietv、goodreads、yelp；其他领域按相同配置格式指定文件路径。
+当前是 **native controlled comparison**。mock 指标只验证流程，不证明推荐效果。iAgent 系列有效返回路径已通过可选原版请求对照；MemRec 保留图和领域规则，采用更短的原生提示词，不宣称严格复现。`paper_reproduction` 明确拒绝运行。
 
-```powershell
-.\.venv\Scripts\agentreclab.exe data inspect --dataset books --raw-dir datasets/raw/books
-.\.venv\Scripts\agentreclab.exe data convert --dataset books --config configs/data/books.yaml
-.\.venv\Scripts\agentreclab.exe data freeze --dataset books --seed 42 --candidates 10 --limit 1000 --out datasets/manifests/books_1k.json
-```
+真实数据通过 `configs/data/books.yaml` 转换并保留原始候选顺序；未知时间戳标为 sequence-only。真实 LLM 调用须显式 `--allow-paid`，先用 `--dry-run` 查看调用量。支持 OpenAI、Azure、Qwen 和兼容 HTTP 服务，密钥从环境变量读取。
 
-原始候选存在时绝不重新采样。转换后的 catalog/interactions/cases 分别为 Parquet，
-manifest 保存原始文件、候选、case IDs 的 SHA-256。训练文本按 event IDs 引用。
-原始时间未知时记录 `sequence_only`，不能宣称严格日历时间一致。
-`controlled_comparison` 和 `paper_reproduction` 分开；后者在缺少原始对齐证据时明确拒绝。
+输出位于 `outputs/runs/<run_id>/`，包含预测、指标、费用、请求缓存和准备状态。`compare --runs <目录1> --runs <目录2> --paired-only` 核对相同样例、候选、训练数据及 provider。
 
-## 输出与真实 provider
-
-每个 run 包含 config/manifest、SQLite 状态与 response cache、JSONL 请求日志/预测、
-原始 response 内容寻址文件、准备阶段状态快照、指标和费用报告。指标同时报告失败排除和
-失败计零两种口径。成功 case 恢复时不重新请求，跨进程 run 锁阻止重复启动。
-
-支持 OpenAI、Azure 和 OpenAI-compatible 服务。API Key 从环境变量读取；所有真实调用
-需要显式 `--allow-paid`。先配置 provider 型号/snapshot/deployment/能力，再执行 dry-run。
-不内置未经验证的实时价格；CNY 预算需要配置带日期的每百万 token 价格。
-首次真实实验按 5→20→100 cases 推进。不得将本地 Qwen 结果标为原论文结果。
-
-详细说明：[架构](docs/architecture.md)、[协议](docs/protocols.md)、
-[复现边界](docs/reproduction.md)、[限制](docs/limitations.md)。
-
-## 已验证结果
-
-本机 49 项测试、ruff lint/format 全通过；三个适配器均完成同一 frozen manifest 的
-10-case 与 100-case mock 测试，失败数为 0，完成样本恢复未新增请求。
-详见 [验收记录](docs/validation_final.md) 和 [阶段完成边界](docs/milestones.md)。
-
-重放整套验收：`python scripts/acceptance.py --prefix my_validation`。
-输出位于 `outputs/reports/`；重复执行应使用新的 prefix，或按单个 run 使用 `--resume`。
-`IntentMemoryConflictAnalyzer` 是独立、只读、需人工核对的词面冲突诊断示例，
-不会改动 baseline 推理，也不是已验证的语义冲突判定模型。
+详见 [架构与调用流程](docs/architecture.md)、[重实现边界](docs/reproduction.md)、[验证记录](docs/validation.md)。官方源码只用于可选审计；普通运行无需获取。

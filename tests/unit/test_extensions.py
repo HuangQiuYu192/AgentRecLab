@@ -2,21 +2,8 @@ import asyncio
 
 import pytest
 
-from agentreclab.diagnostics.conflicts import IntentMemoryConflictAnalyzer
-from agentreclab.eval.bootstrap import user_bootstrap
-from agentreclab.providers.pricing import price
-
-
-def test_conflict_analyzer_is_evidence_only():
-    memories = {"neighbor:1": "likes horror novels", "neighbor:2": "likes comedy"}
-    original = dict(memories)
-    findings = IntentMemoryConflictAnalyzer().analyze(
-        "case:1", "No horror please", memories, ["horror"]
-    )
-    assert len(findings) == 1
-    assert findings[0]["requires_human_review"]
-    assert "horror" in findings[0]["evidence"]
-    assert memories == original
+from agentreclab.evaluation import user_bootstrap
+from agentreclab.llm import price
 
 
 def test_bootstrap_unit_is_user():
@@ -31,12 +18,9 @@ def test_bootstrap_unit_is_user():
 
 
 def test_pricing_estimates_and_cost_budget(tmp_path):
-    from agentreclab.core.errors import BudgetExceeded
-    from agentreclab.core.schemas import LLMUsage
-    from agentreclab.providers.mock import MockProvider
-    from agentreclab.state.store import StateStore
-    from agentreclab.tracing.cache import TracedProvider
-    from agentreclab.tracing.recorder import Recorder
+    from agentreclab.llm import MockProvider, TracedProvider
+    from agentreclab.schema import BudgetExceeded, LLMUsage
+    from agentreclab.storage import Recorder, StateStore
 
     pricing = {
         "currency": "CNY",

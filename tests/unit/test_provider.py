@@ -1,16 +1,13 @@
 import asyncio
 import json
+from dataclasses import replace
 
 import httpx
 import pytest
 
-from agentreclab.core.errors import BudgetExceeded
-from agentreclab.providers.mock import MockProvider
-from agentreclab.providers.openai_compatible import OpenAICompatible
-from agentreclab.state.store import StateStore
-from agentreclab.tracing.cache import TracedProvider
-from agentreclab.tracing.recorder import Recorder
-from agentreclab.tracing.redaction import redact
+from agentreclab.llm import MockProvider, OpenAICompatible, TracedProvider
+from agentreclab.schema import BudgetExceeded
+from agentreclab.storage import Recorder, StateStore, redact
 
 
 def test_cache_provider_isolation_and_budget(tmp_path):
@@ -95,10 +92,31 @@ def test_azure_request(monkeypatch):
     assert captured[0].headers["api-key"] == "synthetic-key"
 
 
+def test_json_mode_communicates_schema(monkeypatch):
+    monkeypatch.setenv("TEST_KEY", "synthetic-key")
+    payloads = []
+
+    def handler(request):
+        payloads.append(json.loads(request.content))
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": '{"knowledge":"ok"}'}}]}
+        )
+
+    provider = OpenAICompatible(
+        {"name": "compatible", "model": "test", "api_key_env": "TEST_KEY"},
+        httpx.MockTransport(handler),
+    )
+    schema = {"type": "object", "properties": {"knowledge": {"type": "string"}}}
+    messages = [{"role": "user", "content": "Generate relevant knowledge"}]
+    asyncio.run(provider.generate(messages, schema=schema))
+    assert payloads[0]["messages"][0]["role"] == "system"
+    assert json.dumps(schema) in payloads[0]["messages"][0]["content"]
+    assert messages == [{"role": "user", "content": "Generate relevant knowledge"}]
+
+
 def test_empty_response_and_redaction(tmp_path):
     class Empty(MockProvider):
         async def generate(self, messages, **kwargs):
-            from dataclasses import replace
 
             return replace(await super().generate(messages, **kwargs), text="")
 

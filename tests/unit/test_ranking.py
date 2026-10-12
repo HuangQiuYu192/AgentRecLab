@@ -2,8 +2,7 @@ import math
 
 import pytest
 
-from agentreclab.eval.aggregate import aggregate
-from agentreclab.eval.ranking import at_rank
+from agentreclab.evaluation import aggregate, at_rank
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,0 @@
-implementation: upstream_wrapper
-adapter_version: 0.1.0
-upstream_commit: e546d17848fadbcaf00e4022aa949289d7e7900b
-test_observe: false

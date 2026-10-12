@@ -1,6 +1,0 @@
-protocol_mode: controlled_comparison
-evaluation: offline_static
-candidate_source: frozen_original
-test_observe: false
-invalid_prediction_policy: fail
-failure_policies: [exclude, count_as_failure]

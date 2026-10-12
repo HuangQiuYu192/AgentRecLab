@@ -5,15 +5,13 @@ from pathlib import Path
 
 import typer
 
-from agentreclab.core.config import ROOT, load_run, load_yaml
-from agentreclab.core.runner import run_experiment
-from agentreclab.data.fixtures import make_fixture
-from agentreclab.data.freeze import freeze as freeze_data
-from agentreclab.data.instructrec import convert as convert_data
-from agentreclab.data.manifest import load_dataset
-from agentreclab.eval.aggregate import aggregate
-from agentreclab.eval.compare import compare_runs
-from agentreclab.state.snapshot import file_hash, read_json
+from agentreclab.config import ROOT, load_run, load_yaml
+from agentreclab.data import convert as convert_data
+from agentreclab.data import freeze as freeze_data
+from agentreclab.data import load_dataset, make_fixture
+from agentreclab.evaluation import aggregate, compare_runs
+from agentreclab.runner import run_experiment
+from agentreclab.storage import file_hash, read_json
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 data = typer.Typer(no_args_is_help=True)
@@ -28,22 +26,13 @@ def display(value):
 def doctor():
     import platform
 
-    from agentreclab.models.base import upstream
-
-    checkouts = {}
-    for name in ("iAgent", "MemRec"):
-        try:
-            checkouts[name] = {
-                "path": str(upstream(name)),
-                "pinned_clean": True,
-                "license": "unknown",
-            }
-        except Exception as exc:
-            checkouts[name] = {"error": str(exc)}
     display(
         {
             "python": platform.python_version(),
-            "upstreams": checkouts,
+            "models": {
+                name: "native; no upstream checkout required"
+                for name in ("iagent", "i2agent", "memrec")
+            },
             "raw_data_present": (ROOT / "datasets" / "raw" / "books").exists(),
             "configured_keys": {
                 k: bool(os.environ.get(k)) for k in ("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY")

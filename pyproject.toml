@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentreclab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Auditable offline instruction-aware recommendation experiments"
 requires-python = ">=3.11"
-dependencies = ["httpx>=0.28,<1", "typer>=0.15,<1", "pyyaml>=6,<7", "numpy>=1.26", "pandas>=2.2", "pyarrow>=18", "openai>=1.43"]
+dependencies = ["httpx>=0.28,<1", "typer>=0.15,<1", "pyyaml>=6,<7", "pandas>=2.2", "pyarrow>=18"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.9"]
