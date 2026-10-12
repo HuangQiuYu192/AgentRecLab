@@ -10,7 +10,7 @@ from utils.core.config import ROOT, load_run, load_yaml
 from utils.data.dataset import convert as convert_data
 from utils.data.dataset import freeze as freeze_data
 from utils.data.dataset import load_dataset
-from utils.experiment.evaluation import aggregate, compare_runs
+from utils.evaluation.metrics import aggregate, compare_runs
 from utils.experiment.runner import run_experiment
 from utils.experiment.storage import file_hash, read_json
 

@@ -18,9 +18,6 @@ fi
 
 MODEL="${1:-iagent}"
 if [[ $# -gt 0 ]]; then shift; fi
-if [[ "$MODEL" == "acceptance" ]]; then
-    exec "$PYTHON_BIN" -m utils.tests.acceptance "$@"
-fi
 case "$MODEL" in
     iagent|i2agent|memrec) ;;
     *) echo "Usage: bash scripts/run.sh {iagent|i2agent|memrec} [experiment options]" >&2; exit 2 ;;

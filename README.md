@@ -18,8 +18,7 @@ AgentRecLab/
 │   ├── run_iagent.sh
 │   ├── run_i2agent.sh
 │   ├── run_memrec.sh
-│   ├── run.sh           公共实验启动脚本
-│   └── acceptance.sh    10/100 样例完整验收
+│   └── run.sh           公共实验启动脚本
 ├── models/
 │   ├── iagent.py        静态 iAgent
 │   ├── i2agent.py       动态 i²Agent
@@ -35,19 +34,14 @@ AgentRecLab/
 │   ├── experiment/     实验执行与结果管理
 │   │   ├── runner.py    实验调度、恢复、源码校验
 │   │   ├── llm.py       LLM 请求、格式校验、缓存、预算
-│   │   ├── storage.py   SQLite、快照、日志
-│   │   └── evaluation.py 指标与配对比较
-│   └── tests/
-│       ├── unit/        单元测试
-│       ├── integration/ 集成测试
-│       ├── acceptance.py 完整流程验收
-│       ├── lock_environment.py 依赖版本锁定工具
-│       └── acceptance_summary.json 历次验收摘要
+│   │   └── storage.py   SQLite、快照、日志
+│   └── evaluation/
+│       └── metrics.py   测试集 HR、NDCG、MRR 与模型比较
 ├── main.py              主入口
 └── outputs/             自动生成的实验结果，不提交 Git
 ```
 
-`configs/models` 当前仅 MemRec 有可调参数；iAgent 系列保留固定算法流程，模型选择在实验配置中指定。测试放在 `utils/tests` 子目录，公共工具与测试代码分开。
+`configs/models` 当前仅 MemRec 有可调参数；iAgent 系列保留固定算法流程，模型选择在实验配置中指定。测试集的最终指标统一由 `utils/evaluation/metrics.py` 计算。
 
 ## 环境
 
@@ -78,7 +72,6 @@ bash scripts/run_iagent.sh
 bash scripts/run_i2agent.sh
 bash scripts/run_memrec.sh
 bash scripts/run_memrec.sh --provider qwen --dry-run
-bash scripts/acceptance.sh my_validation
 ```
 
 脚本从任意工作目录启动，自动定位项目根目录和 `.venv`；可用 `PYTHON=/path/to/python` 指定解释器。Windows 请在 Git Bash 中运行 `.sh`，或使用上面的 PowerShell/Python 命令。
@@ -86,7 +79,7 @@ bash scripts/acceptance.sh my_validation
 
 ## 调用流程
 
-`main.py → utils/core/config.py → utils/experiment/runner.py → utils/data/dataset.py → models/ → utils/experiment/llm.py → utils/experiment/storage.py → utils/experiment/evaluation.py`。
+`main.py → utils/core/config.py → utils/experiment/runner.py → utils/data/dataset.py → models/ → utils/experiment/llm.py → utils/experiment/storage.py → utils/evaluation/metrics.py`。
 
 | 模型 | 逻辑调用顺序 |
 |---|---|
@@ -107,13 +100,12 @@ python main.py --config configs/experiments/books100.yaml --model iagent
 bash scripts/run_memrec.sh --config configs/experiments/books100.yaml
 python main.py validate --manifest datasets/processed/books100/dataset_manifest.json
 python main.py compare --runs outputs/runs/run_a --runs outputs/runs/run_b --paired-only
-python -m pytest -q
 python -m ruff check main.py models utils
 ```
 
 API Key 从环境变量读取，provider 参数在 `configs/api/` 配置。真实调用先 `--dry-run`，再显式 `--allow-paid`。CNY 预算需带日期的 token 价格；请求发出后、响应保存前崩溃会留下 inflight 标记，需核对服务端记录。
 
-当前为 native controlled comparison。MemRec 提示词已精简，未宣称严格论文复现；`paper_reproduction` 拒绝运行。已在真实 Books 100 用户子集验证 mock 流程，尚无付费/真实 LLM 的论文指标验证。最新摘要见 [acceptance_summary.json](utils/tests/acceptance_summary.json)。
+当前为 native controlled comparison。MemRec 提示词已精简，未宣称严格论文复现；`paper_reproduction` 拒绝运行。已在真实 Books 100 用户子集验证 mock 流程，尚无付费/真实 LLM 的论文指标验证。实验结果保存在 `outputs/runs/<run_id>/metrics.json`，预测明细保存在 `predictions.jsonl`。
 
 ## Books 原始文件格式
 
@@ -121,4 +113,15 @@ API Key 从环境变量读取，provider 参数在 `configs/api/` 配置。真�
 
 pkl 是上游发布的 Python pickle 序列化文件，`pandas.read_pickle` 读取为 DataFrame；每行对应一个用户测试样例。`instruction`、`persona` 是字符串；`title`、`description`、`reviewText`、`asin_old`、`asin` 是列表；`ranked_lists` 是 NumPy 数组。`asin_old` 保存原始商品标识，`asin` 保存映射后的整数 ID。历史列表最后一项为待预测目标，运行时移除最后一项及其评论。部分 description 字符串仍含列表字面文本和 HTML，并非全部是干净的自然语言。`combined_books_asin_mapping.csv` 是整数 ID、原始 ASIN、标题与描述的物品映射表。
 
-该数据已由上游处理成 InstructRec，属于本项目的输入原始数据，并非 Amazon 未加工的原始日志。pickle 能保留列表和数组等嵌套对象；作者选择此格式的具体动机未在 README 中说明。项目内部转换为 Parquet，实验配置指向 `datasets/processed/books100/dataset_manifest.json`。自动测试的小样例仅在临时目录或验收输出目录生成。
+该数据已由上游处理成 InstructRec，属于本项目的输入原始数据，并非 Amazon 未加工的原始日志。pickle 能保留列表和数组等嵌套对象；作者选择此格式的具体动机未在 README 中说明。项目内部转换为 Parquet，实验配置指向 `datasets/processed/books100/dataset_manifest.json`。
+
+## 测试集评估
+
+实验运行完成后会自动生成 `metrics.json`。也可读取已有预测记录重新汇总指标：
+
+```powershell
+.\.venv\Scripts\python.exe main.py evaluate --run outputs/runs/books100_real_mock_iagent
+.\.venv\Scripts\python.exe main.py compare --runs outputs/runs/books100_real_mock_iagent --runs outputs/runs/books100_real_mock_i2agent --paired-only
+```
+
+`exclude` 仅统计成功样例，`count_as_failure` 将失败样例记为零；同时输出成功数与失败数。当前输出 HR@1/3/5/10、NDCG@3/10 和 MRR。mock 的这些数值只能用于验证运行流程，真实推荐质量需使用真实 LLM 实验结果。

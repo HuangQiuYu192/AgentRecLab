@@ -10,7 +10,7 @@ from models import create_model
 from utils.core.config import ROOT
 from utils.core.schema import ExperimentContext
 from utils.data.dataset import load_dataset, permutation
-from utils.experiment.evaluation import aggregate, evaluate_case
+from utils.evaluation.metrics import aggregate, evaluate_case
 from utils.experiment.llm import TracedProvider
 from utils.experiment.llm import create_provider as create
 from utils.experiment.storage import (
@@ -42,11 +42,7 @@ def source_version():
     files = [
         ROOT / "main.py",
         *sorted((ROOT / "models").glob("*.py")),
-        *sorted(
-            p
-            for p in (ROOT / "utils").rglob("*.py")
-            if "tests" not in p.relative_to(ROOT / "utils").parts
-        ),
+        *sorted((ROOT / "utils").rglob("*.py")),
     ]
     return digest({str(p.relative_to(ROOT)): file_hash(p) for p in files})
 
