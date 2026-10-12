@@ -1,0 +1,9 @@
+pickle: datasets/raw/books/booksAll_recagent.pkl
+mapping: datasets/raw/books/combined_books_asin_mapping.csv
+item_id_column: index
+user_id_column: reviewerID
+# Official InstructRec files copied and checksum-verified locally.
+trusted_pickle: true
+seed: 42
+max_users: 100
+out: datasets/processed/books100

@@ -91,11 +91,13 @@ i²Agent 保留最近 15 条历史与 `[-2]` 训练反馈索引。MemRec 基础�
 
 ## 数据、API 与测试
 
-真实数据通过 `configs/datasets/books.yaml` 转换，保留原始候选；未知用户 ID 使用行 namespace，未知时间戳标为 sequence-only。`trusted_pickle: true` 仅用于可信文件，pickle 读取会执行代码。
+原始数据已放在 `datasets/raw/{books,movietv,goodreads,yelp}/`，不提交 Git。Books 通过 `reviewerID` 识别真实用户；`configs/datasets/books100.yaml` 按 seed=42 抽取 100 位用户，保留原始行、历史和候选顺序，只保留相关物品及 100 个训练备用物品。未知时间戳标为 sequence-only。`trusted_pickle: true` 仅用于可信文件，pickle 读取会执行代码。
 
 ```bash
-python main.py data convert --dataset books --config configs/datasets/books.yaml
-python main.py validate --manifest datasets/processed/books/dataset_manifest.json
+python main.py data convert --dataset books --config configs/datasets/books100.yaml
+python main.py --config configs/experiments/books100.yaml --model iagent
+bash scripts/run_memrec.sh --config configs/experiments/books100.yaml
+python main.py validate --manifest datasets/processed/books100/dataset_manifest.json
 python main.py compare --runs outputs/runs/run_a --runs outputs/runs/run_b --paired-only
 python -m pytest -q
 python -m ruff check main.py models utils
@@ -103,4 +105,4 @@ python -m ruff check main.py models utils
 
 API Key 从环境变量读取，provider 参数在 `configs/api/` 配置。真实调用先 `--dry-run`，再显式 `--allow-paid`。CNY 预算需带日期的 token 价格；请求发出后、响应保存前崩溃会留下 inflight 标记，需核对服务端记录。
 
-当前为 native controlled comparison。MemRec 提示词已精简，未宣称严格论文复现；`paper_reproduction` 拒绝运行。没有真实数据或付费 LLM 的论文指标验证，mock 仅验证流程。最新摘要见 [acceptance_summary.json](utils/tests/acceptance_summary.json)。
+当前为 native controlled comparison。MemRec 提示词已精简，未宣称严格论文复现；`paper_reproduction` 拒绝运行。已在真实 Books 100 用户子集验证 mock 流程，尚无付费/真实 LLM 的论文指标验证。最新摘要见 [acceptance_summary.json](utils/tests/acceptance_summary.json)。

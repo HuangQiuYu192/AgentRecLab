@@ -1,0 +1,9 @@
+run_id: books100
+manifest: datasets/processed/books100/dataset_manifest.json
+protocol_mode: controlled_comparison
+provider: mock
+model: iagent
+seed: 42
+max_calls: 2000
+concurrency: 4
+invalid_prediction_policy: fail

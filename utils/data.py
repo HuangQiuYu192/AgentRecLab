@@ -191,18 +191,41 @@ def convert(dataset, config):
             "pickle can execute code: set trusted_pickle only for trusted upstream data"
         )
     raw, mapping = Path(config["pickle"]), Path(config["mapping"])
-    df, meta = pd.read_pickle(raw), pd.read_csv(mapping, dtype=str, keep_default_na=False)
+    df = pd.read_pickle(raw)
+    df["__source_ordinal"] = range(len(df))
+    user_column = config.get("user_id_column")
+    limit = config.get("max_users")
+    if limit is not None:
+        import random
+
+        if not user_column or user_column not in df:
+            raise ValueError("sampling users requires an original user_id_column")
+        users = list(df[user_column].drop_duplicates())
+        if int(limit) < 1 or int(limit) > len(users):
+            raise ValueError("max_users is outside the available user count")
+        selected = random.Random(config.get("seed", 42)).sample(users, int(limit))
+        df = df[df[user_column].isin(selected)]
+        needed = {str(i) for values in df["asin"] for i in values}
+        needed.update(str(i) for values in df["ranked_lists"] for i in values)
+    else:
+        needed = None
     id_column = config.get("item_id_column", "index")
-    catalog = {
-        str(r[id_column]): {
-            "title": str(r["title"]),
-            "description": str(r.get("description", "")),
-            "tags": [],
-        }
-        for _, r in meta.iterrows()
-    }
+    catalog, spare = {}, set()
+    for chunk in pd.read_csv(mapping, dtype=str, keep_default_na=False, chunksize=10000):
+        if needed is not None:
+            for item in chunk[id_column]:
+                if item not in needed and len(spare) < 100:
+                    spare.add(item)
+            chunk = chunk[chunk[id_column].isin(needed | spare)]
+        for _, r in chunk.iterrows():
+            catalog[str(r[id_column])] = {
+                "title": str(r["title"]),
+                "description": str(r.get("description", "")),
+                "tags": [],
+            }
     cases, events = [], []
-    for ordinal, (index, row) in enumerate(df.iterrows()):
+    for index, row in df.iterrows():
+        ordinal = int(row["__source_ordinal"])
         namespace = f"instructrec:{dataset}"
         uid = (
             f"{namespace}:{row[config['user_id_column']]}"
@@ -266,7 +289,11 @@ def convert(dataset, config):
             "time_semantics": "sequence_only_original_timestamps_unknown",
             "candidate_source": "original",
             "seed": config.get("seed", 42),
-            "filtering": "none",
+            "filtering": "seeded_user_sample_original_row_order" if limit is not None else "none",
+            "max_users": limit,
+            "catalog_scope": "selected histories/candidates plus 100 spare items"
+            if limit is not None
+            else "full_original_mapping",
             "user_id_column": config.get("user_id_column", "unknown"),
         },
     )
