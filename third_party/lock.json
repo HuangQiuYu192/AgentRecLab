@@ -1,0 +1,4 @@
+{
+  "iAgent": {"url": "https://github.com/agiresearch/iAgent.git", "commit": "e546d17848fadbcaf00e4022aa949289d7e7900b", "license": "unknown: no license file in audited tree", "python": "3.9"},
+  "MemRec": {"url": "https://github.com/rutgerswiselab/memrec.git", "commit": "58d9031ed91c623b8034d2bf04f39aa937424c33", "license": "unknown: no license file in audited tree", "python": "3.10"}
+}
