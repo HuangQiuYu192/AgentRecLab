@@ -2,16 +2,23 @@ import json
 import subprocess
 import sys
 
-from utils.config import ROOT
+import yaml
+
+from utils.config import ROOT, load_yaml
+from utils.data import make_fixture
 
 
 def test_main_entrypoint_from_another_directory(tmp_path):
+    config = load_yaml(ROOT / "configs/experiments/books100.yaml")
+    config["manifest"] = str(make_fixture(tmp_path / "data"))
+    config_path = tmp_path / "experiment.yaml"
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
     result = subprocess.run(
         [
             sys.executable,
             str(ROOT / "main.py"),
             "--config",
-            str(ROOT / "configs/experiments/smoke_books.yaml"),
+            str(config_path),
             "--model",
             "i2agent",
             "--dry-run",

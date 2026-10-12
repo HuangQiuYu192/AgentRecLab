@@ -9,7 +9,7 @@ import typer
 from utils.config import ROOT, load_run, load_yaml
 from utils.data import convert as convert_data
 from utils.data import freeze as freeze_data
-from utils.data import load_dataset, make_fixture
+from utils.data import load_dataset
 from utils.evaluation import aggregate, compare_runs
 from utils.runner import run_experiment
 from utils.storage import file_hash, read_json
@@ -42,15 +42,6 @@ def doctor():
             "real_connectivity": "not probed: use opt-in paid run after dry-run",
         }
     )
-
-
-@data.command()
-def fixture(
-    out: Path = ROOT / "datasets" / "processed" / "demo_books",
-    cases: int = 10,
-    dataset: str = "books",
-):
-    display({"manifest": str(make_fixture(out, cases, dataset))})
 
 
 @data.command()

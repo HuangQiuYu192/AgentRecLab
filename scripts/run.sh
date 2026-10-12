@@ -25,4 +25,4 @@ case "$MODEL" in
     iagent|i2agent|memrec) ;;
     *) echo "Usage: bash scripts/run.sh {iagent|i2agent|memrec} [experiment options]" >&2; exit 2 ;;
 esac
-exec "$PYTHON_BIN" "$ROOT/main.py" --config "$ROOT/configs/experiments/smoke_books.yaml" --model "$MODEL" "$@"
+exec "$PYTHON_BIN" "$ROOT/main.py" --config "$ROOT/configs/experiments/books100.yaml" --model "$MODEL" "$@"

@@ -1,6 +1,6 @@
 # AgentRecLab
 
-指令感知推荐实验项目，原生实现 iAgent、i²Agent 和 MemRec。默认使用合成数据和 mock LLM，不依赖官方模型源码。
+指令感知推荐实验项目，原生实现 iAgent、i²Agent 和 MemRec。默认使用真实 Books 100 用户子集和 mock LLM，不依赖官方模型源码。
 
 ## 目录
 
@@ -13,7 +13,7 @@ AgentRecLab/
 │   └── experiments/     实验组合配置
 ├── datasets/
 │   ├── raw/             原始数据，真实文件不提交 Git
-│   └── processed/       处理后数据，包含 demo_books 合成样例
+│   └── processed/       处理后数据，包含真实 books100 子集
 ├── scripts/
 │   ├── run_iagent.sh
 │   ├── run_i2agent.sh
@@ -58,9 +58,9 @@ Linux/macOS 使用 `.venv/bin/python`。`requirements.lock` 保存验证过的�
 直接通过主文件运行：
 
 ```powershell
-.\.venv\Scripts\python.exe main.py --config configs/experiments/smoke_books.yaml --model iagent
-.\.venv\Scripts\python.exe main.py --config configs/experiments/smoke_books.yaml --model i2agent
-.\.venv\Scripts\python.exe main.py --config configs/experiments/smoke_books.yaml --model memrec
+.\.venv\Scripts\python.exe main.py --config configs/experiments/books100.yaml --model iagent
+.\.venv\Scripts\python.exe main.py --config configs/experiments/books100.yaml --model i2agent
+.\.venv\Scripts\python.exe main.py --config configs/experiments/books100.yaml --model memrec
 ```
 
 Linux、WSL 或 Git Bash 中可直接运行脚本：
@@ -106,3 +106,11 @@ python -m ruff check main.py models utils
 API Key 从环境变量读取，provider 参数在 `configs/api/` 配置。真实调用先 `--dry-run`，再显式 `--allow-paid`。CNY 预算需带日期的 token 价格；请求发出后、响应保存前崩溃会留下 inflight 标记，需核对服务端记录。
 
 当前为 native controlled comparison。MemRec 提示词已精简，未宣称严格论文复现；`paper_reproduction` 拒绝运行。已在真实 Books 100 用户子集验证 mock 流程，尚无付费/真实 LLM 的论文指标验证。最新摘要见 [acceptance_summary.json](utils/tests/acceptance_summary.json)。
+
+## Books 原始文件格式
+
+`booksAll_recagent.pkl` 是普通版本（7,377 用户、9 列、每用户 10 个候选）；`booksAll_recagent_1ads.pkl` 是扩展版本（同样的用户、指令与历史，新增 `ads_title`、`ads_description`，每行在原候选末尾追加一个物品，共 11 个候选）。当前转换配置使用普通版本。扩展版本需另设 11 候选的实验协议，不能混入当前 10 候选比较。
+
+pkl 是上游发布的 Python pickle 序列化文件，`pandas.read_pickle` 读取为 DataFrame；每行对应一个用户测试样例。`instruction`、`persona` 是字符串；`title`、`description`、`reviewText`、`asin_old`、`asin` 是列表；`ranked_lists` 是 NumPy 数组。`asin_old` 保存原始商品标识，`asin` 保存映射后的整数 ID。历史列表最后一项为待预测目标，运行时移除最后一项及其评论。部分 description 字符串仍含列表字面文本和 HTML，并非全部是干净的自然语言。`combined_books_asin_mapping.csv` 是整数 ID、原始 ASIN、标题与描述的物品映射表。
+
+该数据已由上游处理成 InstructRec，属于本项目的输入原始数据，并非 Amazon 未加工的原始日志。pickle 能保留列表和数组等嵌套对象；作者选择此格式的具体动机未在 README 中说明。项目内部转换为 Parquet，实验配置指向 `datasets/processed/books100/dataset_manifest.json`。自动测试的小样例仅在临时目录或验收输出目录生成。

@@ -27,7 +27,7 @@ class RecordingMock(MockProvider):
 @pytest.mark.parametrize("model,calls", [("iagent", 2), ("i2agent", 5), ("memrec", 2)])
 def test_native_request_flow(tmp_path, model, calls):
     cases, events, catalog, _ = load_dataset(make_fixture(tmp_path / "data"))
-    cfg = load_run(ROOT / "configs/experiments/smoke_books.yaml", model=model)
+    cfg = load_run(ROOT / "configs/experiments/books100.yaml", model=model)
     provider = RecordingMock()
     context = ExperimentContext(
         catalog,
@@ -100,7 +100,7 @@ def test_identifier_mapping_is_bijective():
 @pytest.mark.parametrize("model", ["iagent", "i2agent", "memrec"])
 def test_label_change_does_not_change_model_requests(tmp_path, model):
     cases, events, catalog, _ = load_dataset(make_fixture(tmp_path / "data"))
-    cfg = load_run(ROOT / "configs/experiments/smoke_books.yaml")
+    cfg = load_run(ROOT / "configs/experiments/books100.yaml")
 
     async def execute(case):
         provider = RecordingMock()

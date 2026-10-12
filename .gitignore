@@ -8,7 +8,6 @@ __pycache__/
 datasets/raw/*
 !datasets/raw/.gitkeep
 datasets/processed/*
-!datasets/processed/demo_books/
 outputs/
 build/
 dist/

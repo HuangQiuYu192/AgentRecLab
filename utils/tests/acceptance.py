@@ -17,7 +17,7 @@ async def execute(prefix):
         fixture = make_fixture(ROOT / "outputs" / "fixtures" / f"books{n}", n)
         runs = []
         for model in ("iagent", "i2agent", "memrec"):
-            cfg = load_run(ROOT / "configs/experiments/smoke_books.yaml", model=model)
+            cfg = load_run(ROOT / "configs/experiments/books100.yaml", model=model)
             cfg.update(
                 manifest=str(fixture), run_id=f"{prefix}_{n}_{model}", max_calls=2000, concurrency=4
             )

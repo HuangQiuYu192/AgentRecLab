@@ -14,7 +14,7 @@ from utils.schema import ExperimentContext
 
 def model_context(tmp_path, name, provider=None):
     cases, events, catalog, _ = load_dataset(make_fixture(tmp_path / "data"))
-    config = load_run(ROOT / "configs/experiments/smoke_books.yaml", model=name)
+    config = load_run(ROOT / "configs/experiments/books100.yaml", model=name)
     context = ExperimentContext(
         catalog,
         {e.event_id: e for e in events},

@@ -15,7 +15,7 @@ from utils.storage import Recorder, StateStore, digest
 
 
 def test_interrupted_case_uses_durable_response_replay(tmp_path):
-    cfg = load_run(ROOT / "configs/experiments/smoke_books.yaml")
+    cfg = load_run(ROOT / "configs/experiments/books100.yaml")
     cfg.update(manifest=str(make_fixture(tmp_path / "data")), outputs=str(tmp_path / "runs"))
     first = asyncio.run(run_experiment(cfg))
     directory = Path(first["run"])
@@ -59,7 +59,7 @@ def test_invalid_response_does_not_become_success(tmp_path, monkeypatch, mode):
             return result
 
     monkeypatch.setattr("utils.runner.create", lambda config: Invalid())
-    cfg = load_run(ROOT / "configs/experiments/smoke_books.yaml")
+    cfg = load_run(ROOT / "configs/experiments/books100.yaml")
     cfg.update(manifest=str(make_fixture(tmp_path / "data")), outputs=str(tmp_path / "runs"))
     result = asyncio.run(run_experiment(cfg))
     assert result["metrics"]["n_failed"] == 10

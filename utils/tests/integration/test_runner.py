@@ -11,7 +11,7 @@ from utils.storage import read_json, write_json
 
 
 def config(tmp_path, model, n=10):
-    cfg = load_run(ROOT / "configs/experiments/smoke_books.yaml", model=model)
+    cfg = load_run(ROOT / "configs/experiments/books100.yaml", model=model)
     cfg.update(
         manifest=str(make_fixture(tmp_path / "data", n)),
         outputs=str(tmp_path / "runs"),
