@@ -48,7 +48,13 @@ def validate(cases, interactions, catalog, candidate_count=10, strict_time=True)
             for e in interactions
         ):
             raise ValidationError("global training graph contains future interactions")
-    return {"n_cases": len(cases), "n_interactions": len(events), "n_items": len(catalog)}
+    return {
+        "n_cases": len(cases),
+        "n_interactions": len(events),
+        "n_items": len(catalog),
+        "n_users": len({e.user_id for e in interactions}),
+        "n_test_users": len({c.user_id for c in cases}),
+    }
 
 
 def permutation(ids, candidates, policy="fail"):

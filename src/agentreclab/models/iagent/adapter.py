@@ -4,7 +4,7 @@ import re
 import types
 
 from agentreclab.core.schemas import RankingPrediction
-from agentreclab.models.base import BaseModel, SyncBridge, load_module, upstream
+from agentreclab.models.base import BaseModel, SyncBridge, item_mapping, load_module, upstream
 
 
 class IAgentAdapter(BaseModel):
@@ -28,11 +28,7 @@ class IAgentAdapter(BaseModel):
         events = [context.interactions[eid] for eid in case.history_event_ids]
         if self.agent_class == "i2Agent" and len(events) < 2:
             raise ValueError("official dynamic warmup requires at least two training interactions")
-        item_map = (
-            {iid: int(iid) for iid in context.catalog}
-            if all(i.isdigit() for i in context.catalog)
-            else {iid: j + 1 for j, iid in enumerate(context.catalog)}
-        )
+        item_map = item_mapping(context.catalog)
         inverse = {v: k for k, v in item_map.items()}
         candidates = [item_map[i] for i in case.candidates]
         negative = case.metadata.get("warmup_negative")

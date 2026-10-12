@@ -6,6 +6,7 @@ import sys
 import types
 
 from agentreclab.core.config import ROOT
+from agentreclab.providers.structured import validate_schema
 from agentreclab.state.snapshot import file_hash, read_json, write_json
 
 
@@ -37,6 +38,13 @@ def namespace(name, path):
         module = types.ModuleType(name)
         module.__path__ = [str(path)]
         sys.modules[name] = module
+
+
+def item_mapping(catalog):
+    # Leading zeroes and namespaces must survive round-trip.
+    if all(i.isdigit() and str(int(i)) == i for i in catalog):
+        return {i: int(i) for i in catalog}
+    return {i: j + 1 for j, i in enumerate(catalog)}
 
 
 class BaseModel:
@@ -73,7 +81,13 @@ class SyncBridge:
             "required": list(properties),
             "additionalProperties": False,
         }
-        stage = kwargs.get("cache_type", kwargs.get("stage", self.phase))
+        stage = (
+            "rerank"
+            if "scores" in properties
+            else ("retrieval" if "facets" in properties else "memory_update")
+        )
+        if self.phase in ("warmup", "memory_update"):
+            stage = "warmup/" + stage
         return self.call(messages, schema, stage)
 
     def call(self, messages, schema, phase):
@@ -94,6 +108,7 @@ class SyncBridge:
             )
             result = future.result()
             value = json.loads(result.text)
+            validate_schema(value, schema)
             if "rerank_list" in value:
                 self.rankings.append(value["rerank_list"])
             return value

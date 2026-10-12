@@ -41,6 +41,24 @@ def source_version():
     )
 
 
+def environment_versions():
+    from importlib.metadata import version
+
+    return {
+        name: version(name)
+        for name in (
+            "agentreclab",
+            "numpy",
+            "pandas",
+            "pyarrow",
+            "httpx",
+            "typer",
+            "PyYAML",
+            "openai",
+        )
+    }
+
+
 def planned_calls(model, cases):
     return len(cases) * {"iagent": 2, "i2agent": 5, "memrec": 2, "mars": 0}.get(model, 1) + (
         3 * len({c.user_id for c in cases}) if model == "memrec" else 0
@@ -54,6 +72,13 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
     if config["model"] == "mars":
         raise NotImplementedError("MARS experimental/not_ready; docs/model_mapping/mars.md")
     status = readiness(config, data_manifest)
+    from agentreclab.providers.pricing import price
+
+    calls = planned_calls(config["model"], cases)
+    text_bytes = len(canonical(catalog).encode()) + max(len(c.instruction.encode()) for c in cases)
+    estimated_input = calls * (text_bytes + config["provider"].get("max_tokens", 4000) * 4 + 16384)
+    estimated_output = calls * config["provider"].get("max_tokens", 4000)
+    estimated_cost, _ = price(config["provider"], None, estimated_input, estimated_output)
     estimates = {
         "n_cases": len(cases),
         "planned_calls_without_retries": planned_calls(config["model"], cases),
@@ -62,7 +87,10 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
         "provider": config["provider"]["name"],
         "model": config["model"],
         "paid_calls": False,
-        "cost_estimate": "unknown unless a dated price table is configured",
+        "estimated_input_token_bound": estimated_input,
+        "estimated_output_token_cap": estimated_output,
+        "estimated_cost_cny": estimated_cost,
+        "estimate_method": "rough byte bound including catalog/context allowance; before retries/cache, not a bill",
     }
     if dry_run:
         return estimates
@@ -89,6 +117,11 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
             "dataset": file_hash(config["manifest"]),
             "source": source_version(),
             "upstream": file_hash(ROOT / "third_party" / "lock.json"),
+            "environment": environment_versions(),
+            "python": platform.python_version(),
+            "lock": file_hash(ROOT / "requirements.lock")
+            if (ROOT / "requirements.lock").exists()
+            else "unknown",
         }
     )
     manifest_path = directory / "manifest.json"
@@ -112,6 +145,7 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
                 if (ROOT / "requirements.lock").exists()
                 else "unknown",
                 "source_sha256": source_version(),
+                "package_versions": environment_versions(),
                 "upstream": read_json(ROOT / "third_party" / "lock.json"),
                 "dataset_manifest_sha256": file_hash(config["manifest"]),
                 "dataset_provenance": data_manifest["provenance"],
@@ -260,6 +294,9 @@ class RepairProvider:
         self.provider = provider
 
     async def generate(self, messages, **kwargs):
+        fields = kwargs.get("schema", {}).get("properties", {})
+        if "scores" not in fields and "rerank_list" not in fields:
+            return await self.provider.generate(messages, **kwargs)
         return await self.provider.generate(
             messages
             + [

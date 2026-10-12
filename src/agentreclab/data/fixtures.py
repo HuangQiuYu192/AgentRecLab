@@ -3,6 +3,12 @@ from agentreclab.data.manifest import save_dataset
 
 
 def make_fixture(out, n=10, dataset="books"):
+    if n < 1:
+        raise ValueError("fixture requires at least one case")
+    from agentreclab.data.manifest import DOMAINS
+
+    if dataset not in DOMAINS:
+        raise ValueError("unsupported fixture domain")
     catalog = {
         str(i): {
             "title": f"Synthetic book {i}",

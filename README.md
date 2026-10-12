@@ -76,3 +76,14 @@ manifest 保存原始文件、候选、case IDs 的 SHA-256。训练文本按 ev
 
 详细说明：[架构](docs/architecture.md)、[协议](docs/protocols.md)、
 [复现边界](docs/reproduction.md)、[限制](docs/limitations.md)。
+
+## 已验证结果
+
+本机 49 项测试、ruff lint/format 全通过；三个适配器均完成同一 frozen manifest 的
+10-case 与 100-case mock 测试，失败数为 0，完成样本恢复未新增请求。
+详见 [验收记录](docs/validation_final.md) 和 [阶段完成边界](docs/milestones.md)。
+
+重放整套验收：`python scripts/acceptance.py --prefix my_validation`。
+输出位于 `outputs/reports/`；重复执行应使用新的 prefix，或按单个 run 使用 `--resume`。
+`IntentMemoryConflictAnalyzer` 是独立、只读、需人工核对的词面冲突诊断示例，
+不会改动 baseline 推理，也不是已验证的语义冲突判定模型。

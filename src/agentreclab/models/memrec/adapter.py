@@ -6,7 +6,7 @@ import types
 
 from agentreclab.core.schemas import RankingPrediction
 from agentreclab.data.validation import permutation
-from agentreclab.models.base import BaseModel, SyncBridge, namespace, upstream
+from agentreclab.models.base import BaseModel, SyncBridge, item_mapping, namespace, upstream
 
 
 class MemRecAdapter(BaseModel):
@@ -47,11 +47,7 @@ class MemRecAdapter(BaseModel):
         )
         self.agent_class = module.MemRecAgent
         self.graph_class = memory.UserItemGraph
-        self.item_map = (
-            {iid: int(iid) for iid in context.catalog}
-            if all(i.isdigit() for i in context.catalog)
-            else {iid: j + 1 for j, iid in enumerate(context.catalog)}
-        )
+        self.item_map = item_mapping(context.catalog)
         self.inverse = {v: k for k, v in self.item_map.items()}
         self.user_map = {
             uid: j

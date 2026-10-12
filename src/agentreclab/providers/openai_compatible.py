@@ -16,7 +16,8 @@ class OpenAICompatible:
     async def generate(self, messages, **kwargs):
         config = self.config
         endpoint = config.get("endpoint") or os.environ.get(
-            config.get("endpoint_env", "OPENAI_BASE_URL"), "https://api.openai.com/v1"
+            config.get("endpoint_env", "OPENAI_BASE_URL"),
+            "" if config["name"] == "azure" else "https://api.openai.com/v1",
         )
         if config["name"] == "azure" and not endpoint:
             raise ValueError("Azure endpoint is required")
