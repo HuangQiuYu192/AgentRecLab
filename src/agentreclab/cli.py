@@ -1,0 +1,163 @@
+import asyncio
+import json
+import os
+from pathlib import Path
+
+import typer
+
+from agentreclab.core.config import ROOT, load_run, load_yaml
+from agentreclab.core.runner import run_experiment
+from agentreclab.data.fixtures import make_fixture
+from agentreclab.data.freeze import freeze as freeze_data
+from agentreclab.data.instructrec import convert as convert_data
+from agentreclab.data.manifest import load_dataset
+from agentreclab.eval.aggregate import aggregate
+from agentreclab.eval.compare import compare_runs
+from agentreclab.state.snapshot import file_hash, read_json
+
+app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
+data = typer.Typer(no_args_is_help=True)
+app.add_typer(data, name="data")
+
+
+def display(value):
+    typer.echo(json.dumps(value, indent=2, ensure_ascii=False))
+
+
+@app.command()
+def doctor():
+    import platform
+
+    from agentreclab.models.base import upstream
+
+    checkouts = {}
+    for name in ("iAgent", "MemRec"):
+        try:
+            checkouts[name] = {
+                "path": str(upstream(name)),
+                "pinned_clean": True,
+                "license": "unknown",
+            }
+        except Exception as exc:
+            checkouts[name] = {"error": str(exc)}
+    display(
+        {
+            "python": platform.python_version(),
+            "upstreams": checkouts,
+            "raw_data_present": (ROOT / "datasets" / "raw" / "books").exists(),
+            "configured_keys": {
+                k: bool(os.environ.get(k)) for k in ("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY")
+            },
+            "mock": "available; no network required",
+            "real_connectivity": "not probed: use opt-in paid run after dry-run",
+            "mars": "experimental/not_ready",
+        }
+    )
+
+
+@data.command()
+def fixture(out: Path = Path("datasets/fixtures/books"), cases: int = 10, dataset: str = "books"):
+    display({"manifest": str(make_fixture(out, cases, dataset))})
+
+
+@data.command()
+def inspect(dataset: str = typer.Option(...), raw_dir: Path = typer.Option(...)):
+    display(
+        {
+            "dataset": dataset,
+            "exists": raw_dir.exists(),
+            "files": [
+                {
+                    "name": str(p.relative_to(raw_dir)),
+                    "bytes": p.stat().st_size,
+                    "sha256": file_hash(p),
+                }
+                for p in raw_dir.rglob("*")
+                if p.is_file()
+            ],
+        }
+    )
+
+
+@data.command()
+def convert(dataset: str = typer.Option(...), config: Path = typer.Option(...)):
+    display({"manifest": str(convert_data(dataset, load_yaml(config)))})
+
+
+@data.command()
+def freeze(
+    dataset: str = typer.Option(...),
+    out: Path = typer.Option(...),
+    seed: int = 42,
+    candidates: int = 10,
+    source: Path | None = None,
+    limit: int | None = None,
+):
+    source = source or Path("datasets/canonical") / dataset / "dataset_manifest.json"
+    display({"manifest": str(freeze_data(source, out, seed, limit, candidates))})
+
+
+@app.command()
+def validate(manifest: Path = typer.Option(...)):
+    cases, interactions, catalog, _ = load_dataset(manifest)
+    display(
+        {
+            "valid": True,
+            "n_cases": len(cases),
+            "n_interactions": len(interactions),
+            "n_items": len(catalog),
+        }
+    )
+
+
+@app.command()
+def run(
+    config: Path = typer.Option(...),
+    provider: str | None = None,
+    model: str | None = None,
+    resume: bool = False,
+    dry_run: bool = False,
+    allow_paid: bool = False,
+    run_id: str | None = None,
+):
+    resolved = load_run(config, provider, model)
+    if run_id:
+        resolved["run_id"] = run_id
+    elif model:
+        resolved["run_id"] = resolved["run_id"] + "_" + model
+    result = asyncio.run(run_experiment(resolved, resume, dry_run, allow_paid))
+    display(result)
+    if result.get("status") == "completed_with_failures":
+        raise typer.Exit(1)
+
+
+@app.command()
+def evaluate(run: Path = typer.Option(...)):
+    rows = [
+        json.loads(line)
+        for line in (run / "predictions.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    display(aggregate(rows))
+
+
+@app.command()
+def compare(runs: list[Path] = typer.Option(...), paired_only: bool = False):
+    display(compare_runs(runs, paired_only))
+
+
+@app.command()
+def report(run: Path = typer.Option(...), out: Path = typer.Option(...)):
+    manifest, metrics = read_json(run / "manifest.json"), read_json(run / "metrics.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    text = f"# {manifest['run_id']}\n\nProtocol: {manifest['protocol_mode']}\n\nStatus: {manifest['reproduction_status']}\n\nSynthetic mock metrics validate infrastructure only.\n\n"
+    text += "| Metric | Exclude failures | Count failures as zero |\n|---|---:|---:|\n"
+    for key in metrics["exclude"]:
+        text += f"| {key} | {metrics['exclude'][key]} | {metrics['count_as_failure'][key]} |\n"
+    text += f"\nSucceeded: {metrics['n_evaluated']}; failed: {metrics['n_failed']}; cost CNY: {metrics['total_cost_cny']}; unknown-cost calls: {metrics['unknown_cost_calls']}\n\nManifest SHA-256: `{file_hash(run / 'manifest.json')}`\n\n"
+    text += "Disclosed deviations:\n\n" + "\n".join("- " + d for d in manifest["deviations"]) + "\n"
+    out.write_text(text, encoding="utf-8")
+    display({"report": str(out)})
+
+
+if __name__ == "__main__":
+    app()

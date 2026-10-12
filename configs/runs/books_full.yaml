@@ -1,0 +1,9 @@
+run_id: books_full
+manifest: datasets/manifests/books_full.json
+protocol_mode: controlled_comparison
+provider: mock
+model: memrec
+seed: 42
+max_calls: 100000
+concurrency: 1
+invalid_prediction_policy: fail

@@ -1,0 +1,13 @@
+name: openai
+model: gpt-4o-mini
+snapshot: unknown
+endpoint: https://api.openai.com/v1
+api_key_env: OPENAI_API_KEY
+temperature: 0
+max_tokens: 4000
+timeout: 60
+retry_budget: 2
+capabilities:
+  supports_json_schema: true
+  supports_seed: false
+# Prices must be independently verified and dated before using budget_cny.

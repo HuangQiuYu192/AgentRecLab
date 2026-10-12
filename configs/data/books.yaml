@@ -1,0 +1,7 @@
+pickle: datasets/raw/books/booksAll_recagent.pkl
+mapping: datasets/raw/books/combined_books_asin_mapping.csv
+item_id_column: index
+user_id_column: null
+trusted_pickle: false
+seed: 42
+out: datasets/canonical/books

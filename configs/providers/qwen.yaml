@@ -1,0 +1,15 @@
+name: qwen
+model: Qwen/Qwen3-14B
+snapshot: unknown
+endpoint: http://127.0.0.1:8000/v1
+api_key_env: OPENAI_API_KEY
+temperature: 0
+max_tokens: 4000
+timeout: 120
+retry_budget: 2
+thinking:
+  chat_template_kwargs:
+    enable_thinking: false
+capabilities:
+  supports_json_schema: false
+  supports_seed: true

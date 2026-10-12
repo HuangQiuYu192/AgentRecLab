@@ -1,0 +1,3 @@
+protocol_mode: paper_reproduction
+status: not_ready
+reason: data equivalence, snapshots and standalone numeric parity unverified
