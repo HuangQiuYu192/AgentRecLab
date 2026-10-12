@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from utils.evaluation import user_bootstrap
-from utils.llm import price
+from utils.experiment.evaluation import user_bootstrap
+from utils.experiment.llm import price
 
 
 def test_bootstrap_unit_is_user():
@@ -18,9 +18,9 @@ def test_bootstrap_unit_is_user():
 
 
 def test_pricing_estimates_and_cost_budget(tmp_path):
-    from utils.llm import MockProvider, TracedProvider
-    from utils.schema import BudgetExceeded, LLMUsage
-    from utils.storage import Recorder, StateStore
+    from utils.core.schema import BudgetExceeded, LLMUsage
+    from utils.experiment.llm import MockProvider, TracedProvider
+    from utils.experiment.storage import Recorder, StateStore
 
     pricing = {
         "currency": "CNY",

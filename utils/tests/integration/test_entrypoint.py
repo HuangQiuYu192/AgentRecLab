@@ -4,8 +4,8 @@ import sys
 
 import yaml
 
-from utils.config import ROOT, load_yaml
-from utils.data import make_fixture
+from utils.core.config import ROOT, load_yaml
+from utils.data.dataset import make_fixture
 
 
 def test_main_entrypoint_from_another_directory(tmp_path):

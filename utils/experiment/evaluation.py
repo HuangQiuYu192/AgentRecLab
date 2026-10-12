@@ -3,9 +3,9 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
-from utils.data import permutation
-from utils.schema import ProtocolMismatch
-from utils.storage import read_json
+from utils.core.schema import ProtocolMismatch
+from utils.data.dataset import permutation
+from utils.experiment.storage import read_json
 
 
 def at_rank(rank):

@@ -5,9 +5,9 @@ from dataclasses import replace
 import httpx
 import pytest
 
-from utils.llm import MockProvider, OpenAICompatible, TracedProvider
-from utils.schema import BudgetExceeded
-from utils.storage import Recorder, StateStore, redact
+from utils.core.schema import BudgetExceeded
+from utils.experiment.llm import MockProvider, OpenAICompatible, TracedProvider
+from utils.experiment.storage import Recorder, StateStore, redact
 
 
 def test_cache_provider_isolation_and_budget(tmp_path):

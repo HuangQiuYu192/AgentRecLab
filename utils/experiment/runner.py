@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from models import create_model
-from utils.config import ROOT
-from utils.data import load_dataset, permutation
-from utils.evaluation import aggregate, evaluate_case
-from utils.llm import TracedProvider
-from utils.llm import create_provider as create
-from utils.schema import ExperimentContext
-from utils.storage import (
+from utils.core.config import ROOT
+from utils.core.schema import ExperimentContext
+from utils.data.dataset import load_dataset, permutation
+from utils.experiment.evaluation import aggregate, evaluate_case
+from utils.experiment.llm import TracedProvider
+from utils.experiment.llm import create_provider as create
+from utils.experiment.storage import (
     Recorder,
     StateStore,
     canonical,
@@ -42,7 +42,11 @@ def source_version():
     files = [
         ROOT / "main.py",
         *sorted((ROOT / "models").glob("*.py")),
-        *sorted((ROOT / "utils").glob("*.py")),
+        *sorted(
+            p
+            for p in (ROOT / "utils").rglob("*.py")
+            if "tests" not in p.relative_to(ROOT / "utils").parts
+        ),
     ]
     return digest({str(p.relative_to(ROOT)): file_hash(p) for p in files})
 
@@ -86,7 +90,7 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
     if not cases:
         raise ValueError("empty case manifest")
     status = readiness(config)
-    from utils.llm import price
+    from utils.experiment.llm import price
 
     calls = planned_calls(config["model"], cases)
     text_bytes = len(canonical(catalog).encode()) + max(len(c.instruction.encode()) for c in cases)

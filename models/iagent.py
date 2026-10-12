@@ -1,7 +1,7 @@
 import re
 
-from utils.base import RANK_SCHEMA, STRING, BaseModel, object_schema
-from utils.schema import RankingPrediction
+from utils.core.base import RANK_SCHEMA, STRING, BaseModel, object_schema
+from utils.core.schema import RankingPrediction
 
 
 def clean(text):

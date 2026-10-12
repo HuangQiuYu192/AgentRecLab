@@ -6,8 +6,8 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from utils.schema import Interaction, RankingCase, ValidationError
-from utils.storage import digest, file_hash, read_json, write_json
+from utils.core.schema import Interaction, RankingCase, ValidationError
+from utils.experiment.storage import digest, file_hash, read_json, write_json
 
 
 def instant(text):
@@ -91,7 +91,7 @@ def save_dataset(out, cases, interactions, catalog, provenance=None):
         "catalog": [{"item_id": k, **v} for k, v in catalog.items()],
     }
     # Metadata is serialized as JSON to avoid heterogeneous nested Parquet schemas.
-    from utils.storage import canonical
+    from utils.experiment.storage import canonical
 
     for name, rows in tables.items():
         for row in rows:

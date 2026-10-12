@@ -6,12 +6,12 @@ import pandas as pd
 import pytest
 
 from models import create_model
-from utils.base import item_mapping
-from utils.config import ROOT, load_run
-from utils.data import DOMAINS, convert, load_dataset, make_fixture
-from utils.llm import MockProvider
-from utils.schema import ExperimentContext
-from utils.storage import digest
+from utils.core.base import item_mapping
+from utils.core.config import ROOT, load_run
+from utils.core.schema import ExperimentContext
+from utils.data.dataset import DOMAINS, convert, load_dataset, make_fixture
+from utils.experiment.llm import MockProvider
+from utils.experiment.storage import digest
 
 
 class RecordingMock(MockProvider):

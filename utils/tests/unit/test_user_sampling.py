@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from utils.data import convert, load_dataset
+from utils.data.dataset import convert, load_dataset
 
 
 def test_sample_original_users_preserves_case_identity_and_candidates(tmp_path):

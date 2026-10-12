@@ -7,11 +7,11 @@ import pytest
 from typer.testing import CliRunner
 
 from main import app
-from utils.config import ROOT, load_run
-from utils.data import make_fixture
-from utils.llm import MockProvider, TracedProvider
-from utils.runner import run_experiment
-from utils.storage import Recorder, StateStore, digest
+from utils.core.config import ROOT, load_run
+from utils.data.dataset import make_fixture
+from utils.experiment.llm import MockProvider, TracedProvider
+from utils.experiment.runner import run_experiment
+from utils.experiment.storage import Recorder, StateStore, digest
 
 
 def test_interrupted_case_uses_durable_response_replay(tmp_path):
@@ -58,7 +58,7 @@ def test_invalid_response_does_not_become_success(tmp_path, monkeypatch, mode):
                 return replace(result, text=json.dumps(value))
             return result
 
-    monkeypatch.setattr("utils.runner.create", lambda config: Invalid())
+    monkeypatch.setattr("utils.experiment.runner.create", lambda config: Invalid())
     cfg = load_run(ROOT / "configs/experiments/books100.yaml")
     cfg.update(manifest=str(make_fixture(tmp_path / "data")), outputs=str(tmp_path / "runs"))
     result = asyncio.run(run_experiment(cfg))

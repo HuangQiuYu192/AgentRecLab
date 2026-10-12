@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from utils.evaluation import aggregate, at_rank
+from utils.experiment.evaluation import aggregate, at_rank
 
 
 @pytest.mark.parametrize(

@@ -89,7 +89,7 @@ class StateStore:
             )
 
     def reserve(self, rid, amount, max_calls, budget):
-        from utils.schema import BudgetExceeded
+        from utils.core.schema import BudgetExceeded
 
         with self.lock, self.db:
             calls, cost = self.db.execute(

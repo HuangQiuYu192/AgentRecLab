@@ -6,13 +6,13 @@ from pathlib import Path
 
 import typer
 
-from utils.config import ROOT, load_run, load_yaml
-from utils.data import convert as convert_data
-from utils.data import freeze as freeze_data
-from utils.data import load_dataset
-from utils.evaluation import aggregate, compare_runs
-from utils.runner import run_experiment
-from utils.storage import file_hash, read_json
+from utils.core.config import ROOT, load_run, load_yaml
+from utils.data.dataset import convert as convert_data
+from utils.data.dataset import freeze as freeze_data
+from utils.data.dataset import load_dataset
+from utils.experiment.evaluation import aggregate, compare_runs
+from utils.experiment.runner import run_experiment
+from utils.experiment.storage import file_hash, read_json
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 data = typer.Typer(no_args_is_help=True)

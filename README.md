@@ -26,15 +26,23 @@ AgentRecLab/
 │   ├── memrec.py        记忆协同推荐
 │   └── __init__.py      简单模型注册
 ├── utils/
-│   ├── base.py          模型基类、JSON 调用、ID 映射
-│   ├── config.py        配置读取
-│   ├── schema.py        数据结构
-│   ├── data.py          数据转换、冻结、读取、校验
-│   ├── llm.py           LLM 请求、格式校验、缓存、预算
-│   ├── storage.py       SQLite、快照、日志
-│   ├── runner.py        实验运行与恢复
-│   ├── evaluation.py    指标与配对比较
-│   └── tests/           单元/集成测试、验收工具与摘要
+│   ├── core/            公共基础定义
+│   │   ├── base.py      模型基类、JSON 调用、ID 映射
+│   │   ├── schema.py    数据结构与异常
+│   │   └── config.py    配置读取、项目根目录定位
+│   ├── data/
+│   │   └── dataset.py   数据转换、抽样、冻结、读取与校验
+│   ├── experiment/     实验执行与结果管理
+│   │   ├── runner.py    实验调度、恢复、源码校验
+│   │   ├── llm.py       LLM 请求、格式校验、缓存、预算
+│   │   ├── storage.py   SQLite、快照、日志
+│   │   └── evaluation.py 指标与配对比较
+│   └── tests/
+│       ├── unit/        单元测试
+│       ├── integration/ 集成测试
+│       ├── acceptance.py 完整流程验收
+│       ├── lock_environment.py 依赖版本锁定工具
+│       └── acceptance_summary.json 历次验收摘要
 ├── main.py              主入口
 └── outputs/             自动生成的实验结果，不提交 Git
 ```
@@ -78,7 +86,7 @@ bash scripts/acceptance.sh my_validation
 
 ## 调用流程
 
-`main.py → utils/config.py → utils/runner.py → utils/data.py → models/ → utils/llm.py → utils/storage.py → utils/evaluation.py`。
+`main.py → utils/core/config.py → utils/experiment/runner.py → utils/data/dataset.py → models/ → utils/experiment/llm.py → utils/experiment/storage.py → utils/experiment/evaluation.py`。
 
 | 模型 | 逻辑调用顺序 |
 |---|---|

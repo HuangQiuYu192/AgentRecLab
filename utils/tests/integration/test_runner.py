@@ -3,11 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from utils.config import ROOT, load_run
-from utils.data import make_fixture
-from utils.evaluation import compare_runs
-from utils.runner import run_experiment
-from utils.storage import read_json, write_json
+from utils.core.config import ROOT, load_run
+from utils.data.dataset import make_fixture
+from utils.experiment.evaluation import compare_runs
+from utils.experiment.runner import run_experiment
+from utils.experiment.storage import read_json, write_json
 
 
 def config(tmp_path, model, n=10):

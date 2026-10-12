@@ -2,9 +2,9 @@ import math
 import random
 from collections import Counter, defaultdict
 
-from utils.base import STRING, BaseModel, object_schema
-from utils.data import instant, permutation
-from utils.schema import RankingPrediction
+from utils.core.base import STRING, BaseModel, object_schema
+from utils.core.schema import RankingPrediction
+from utils.data.dataset import instant, permutation
 
 
 def domain_score(neighbor, domain):

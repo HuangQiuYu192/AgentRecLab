@@ -9,8 +9,8 @@ from urllib.parse import quote, urlparse
 
 import httpx
 
-from utils.schema import LLMResult, LLMUsage
-from utils.storage import digest
+from utils.core.schema import LLMResult, LLMUsage
+from utils.experiment.storage import digest
 
 
 class MockProvider:

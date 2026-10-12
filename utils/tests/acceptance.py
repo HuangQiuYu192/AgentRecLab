@@ -4,11 +4,11 @@ import argparse
 import asyncio
 from pathlib import Path
 
-from utils.config import ROOT, load_run
-from utils.data import make_fixture
-from utils.evaluation import compare_runs
-from utils.runner import run_experiment
-from utils.storage import file_hash, read_json, write_json
+from utils.core.config import ROOT, load_run
+from utils.data.dataset import make_fixture
+from utils.experiment.evaluation import compare_runs
+from utils.experiment.runner import run_experiment
+from utils.experiment.storage import file_hash, read_json, write_json
 
 
 async def execute(prefix):

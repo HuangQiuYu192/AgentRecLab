@@ -6,10 +6,10 @@ from dataclasses import replace
 import pytest
 
 from models import create_model
-from utils.config import ROOT, load_run
-from utils.data import instant, load_dataset, make_fixture
-from utils.llm import MockProvider
-from utils.schema import ExperimentContext
+from utils.core.config import ROOT, load_run
+from utils.core.schema import ExperimentContext
+from utils.data.dataset import instant, load_dataset, make_fixture
+from utils.experiment.llm import MockProvider
 
 
 def model_context(tmp_path, name, provider=None):

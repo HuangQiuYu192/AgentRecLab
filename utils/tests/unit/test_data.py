@@ -2,7 +2,7 @@ from dataclasses import replace
 
 import pytest
 
-from utils.data import freeze, load_dataset, make_fixture, permutation, validate
+from utils.data.dataset import freeze, load_dataset, make_fixture, permutation, validate
 
 
 @pytest.fixture

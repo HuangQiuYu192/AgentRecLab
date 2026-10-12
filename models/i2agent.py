@@ -1,5 +1,5 @@
 from models.iagent import IAgent, clean
-from utils.base import RANK_SCHEMA, STRING, object_schema
+from utils.core.base import RANK_SCHEMA, STRING, object_schema
 
 
 class I2Agent(IAgent):
