@@ -39,7 +39,6 @@ def doctor():
             },
             "mock": "available; no network required",
             "real_connectivity": "not probed: use opt-in paid run after dry-run",
-            "mars": "experimental/not_ready",
         }
     )
 

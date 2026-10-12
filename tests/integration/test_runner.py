@@ -67,7 +67,7 @@ def test_gates_and_dry_run(tmp_path):
     with pytest.raises(ValueError, match="not_ready"):
         asyncio.run(run_experiment(cfg))
     cfg["model"] = "mars"
-    with pytest.raises(NotImplementedError, match="not_ready"):
+    with pytest.raises(ValueError, match="unsupported model"):
         asyncio.run(run_experiment(cfg))
 
 

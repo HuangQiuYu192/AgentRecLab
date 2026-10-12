@@ -1,424 +1,72 @@
 {
+  "implementation": "native-v2",
+  "python": "3.12.14",
+  "source_sha256": "510ddfd6d59b7c083e306327d195bbb9bb1933ff1b111342a09ff5f85eb05b56",
+  "source_files": 13,
+  "tests_passed": 56,
+  "lint_and_format": "passed",
+  "synthetic_only": true,
   "paid_api_calls": 0,
   "results": [
     {
-      "manifest_sha256": "fae0a2592ae78031d12acb4f63eb57b5ac64a8cdbedc7b344a8c57d0ce0ab439",
-      "metrics": {
-        "avg_calls_per_case": 1.1,
-        "cache_hits": 9,
-        "conservative_reserved_cost_cny": 0,
-        "cost_estimated": true,
-        "count_as_failure": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.4543559338088346,
-          "NDCG@3": 0.21309297535714578
-        },
-        "exclude": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.4543559338088346,
-          "NDCG@3": 0.21309297535714578
-        },
-        "n_evaluated": 10,
-        "n_failed": 0,
-        "phases": {
-          "rerank": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 5038,
-            "output_tokens": 174
-          },
-          "retrieval": {
-            "calls": 1,
-            "cost_cny": 0,
-            "input_tokens": 98,
-            "output_tokens": 18
-          }
-        },
-        "reserved_or_failed_calls": 0,
-        "success_rate": 1.0,
-        "total_calls": 11,
-        "total_cost_cny": 0,
-        "total_input_tokens": 5136,
-        "total_output_tokens": 192,
-        "unknown_cost_calls": 0
-      },
+      "run_id": "lean_10_iagent",
       "model": "iagent",
       "n_cases": 10,
-      "prepared_state_sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f",
-      "resume_no_new_requests": true,
-      "run_id": "native_v2_10_iagent",
-      "source_sha256": "d84681b34d452f05388089ad99ae18b8d22f5639f54e161cb777d9708fea46bd",
-      "status": "completed"
+      "status": "completed",
+      "n_evaluated": 10,
+      "n_failed": 0,
+      "mock_calls": 11,
+      "resume_new_requests": 0
     },
     {
-      "manifest_sha256": "0ace3d53528150d91e4cdaade01e5f205addf728ba28317162fef193b055cb7a",
-      "metrics": {
-        "avg_calls_per_case": 4.1,
-        "cache_hits": 9,
-        "conservative_reserved_cost_cny": 0,
-        "cost_estimated": true,
-        "count_as_failure": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.4543559338088346,
-          "NDCG@3": 0.21309297535714578
-        },
-        "exclude": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.4543559338088346,
-          "NDCG@3": 0.21309297535714578
-        },
-        "n_evaluated": 10,
-        "n_failed": 0,
-        "phases": {
-          "rerank": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 7999,
-            "output_tokens": 174
-          },
-          "retrieval": {
-            "calls": 1,
-            "cost_cny": 0,
-            "input_tokens": 98,
-            "output_tokens": 18
-          },
-          "retrieval/dynamic": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 3370,
-            "output_tokens": 390
-          },
-          "warmup/profile": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 1800,
-            "output_tokens": 170
-          },
-          "warmup/recommend": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 660,
-            "output_tokens": 200
-          }
-        },
-        "reserved_or_failed_calls": 0,
-        "success_rate": 1.0,
-        "total_calls": 41,
-        "total_cost_cny": 0,
-        "total_input_tokens": 13927,
-        "total_output_tokens": 952,
-        "unknown_cost_calls": 0
-      },
+      "run_id": "lean_10_i2agent",
       "model": "i2agent",
       "n_cases": 10,
-      "prepared_state_sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f",
-      "resume_no_new_requests": true,
-      "run_id": "native_v2_10_i2agent",
-      "source_sha256": "d84681b34d452f05388089ad99ae18b8d22f5639f54e161cb777d9708fea46bd",
-      "status": "completed"
+      "status": "completed",
+      "n_evaluated": 10,
+      "n_failed": 0,
+      "mock_calls": 41,
+      "resume_new_requests": 0
     },
     {
-      "manifest_sha256": "b23ca951adc5c2a78158d1831a7255fe2dfd39cb6af97b04fd4686ec5558a986",
-      "metrics": {
-        "avg_calls_per_case": 5.0,
-        "cache_hits": 0,
-        "conservative_reserved_cost_cny": 0,
-        "cost_estimated": true,
-        "count_as_failure": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.4543559338088346,
-          "NDCG@3": 0.21309297535714578
-        },
-        "exclude": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.4543559338088346,
-          "NDCG@3": 0.21309297535714578
-        },
-        "n_evaluated": 10,
-        "n_failed": 0,
-        "phases": {
-          "rerank": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 1789,
-            "output_tokens": 1834
-          },
-          "retrieval": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 2940,
-            "output_tokens": 80
-          },
-          "warmup/memory_update": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 1262,
-            "output_tokens": 430
-          },
-          "warmup/rerank": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 1814,
-            "output_tokens": 1842
-          },
-          "warmup/retrieval": {
-            "calls": 10,
-            "cost_cny": 0,
-            "input_tokens": 2937,
-            "output_tokens": 80
-          }
-        },
-        "reserved_or_failed_calls": 0,
-        "success_rate": 1.0,
-        "total_calls": 50,
-        "total_cost_cny": 0,
-        "total_input_tokens": 10742,
-        "total_output_tokens": 4266,
-        "unknown_cost_calls": 0
-      },
+      "run_id": "lean_10_memrec",
       "model": "memrec",
       "n_cases": 10,
-      "prepared_state_sha256": "f0a77ee798de33d64e5c54a4cab0bc6df208ee4ceb3cc20e9be811d7b597e1c7",
-      "resume_no_new_requests": true,
-      "run_id": "native_v2_10_memrec",
-      "source_sha256": "d84681b34d452f05388089ad99ae18b8d22f5639f54e161cb777d9708fea46bd",
-      "status": "completed"
+      "status": "completed",
+      "n_evaluated": 10,
+      "n_failed": 0,
+      "mock_calls": 50,
+      "resume_new_requests": 0
     },
     {
-      "manifest_sha256": "1ab72845ba598bb9dc03826825b5780b85b4e44ac336c1425fa378079b03b341",
-      "metrics": {
-        "avg_calls_per_case": 0.61,
-        "cache_hits": 139,
-        "conservative_reserved_cost_cny": 0,
-        "cost_estimated": true,
-        "count_as_failure": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.45435593380883454,
-          "NDCG@3": 0.21309297535714575
-        },
-        "exclude": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.45435593380883454,
-          "NDCG@3": 0.21309297535714575
-        },
-        "n_evaluated": 100,
-        "n_failed": 0,
-        "phases": {
-          "rerank": {
-            "calls": 60,
-            "cost_cny": 0,
-            "input_tokens": 30204,
-            "output_tokens": 1032
-          },
-          "retrieval": {
-            "calls": 1,
-            "cost_cny": 0,
-            "input_tokens": 98,
-            "output_tokens": 18
-          }
-        },
-        "reserved_or_failed_calls": 0,
-        "success_rate": 1.0,
-        "total_calls": 61,
-        "total_cost_cny": 0,
-        "total_input_tokens": 30302,
-        "total_output_tokens": 1050,
-        "unknown_cost_calls": 0
-      },
+      "run_id": "lean_100_iagent",
       "model": "iagent",
       "n_cases": 100,
-      "prepared_state_sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f",
-      "resume_no_new_requests": true,
-      "run_id": "native_v2_100_iagent",
-      "source_sha256": "d84681b34d452f05388089ad99ae18b8d22f5639f54e161cb777d9708fea46bd",
-      "status": "completed"
+      "status": "completed",
+      "n_evaluated": 100,
+      "n_failed": 0,
+      "mock_calls": 61,
+      "resume_new_requests": 0
     },
     {
-      "manifest_sha256": "ac72b07682aad2f8891a39f0903dcb02b4065070acbe9e2e6c06eb626f758d01",
-      "metrics": {
-        "avg_calls_per_case": 1.21,
-        "cache_hits": 379,
-        "conservative_reserved_cost_cny": 0,
-        "cost_estimated": true,
-        "count_as_failure": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.45435593380883454,
-          "NDCG@3": 0.21309297535714575
-        },
-        "exclude": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.45435593380883454,
-          "NDCG@3": 0.21309297535714575
-        },
-        "n_evaluated": 100,
-        "n_failed": 0,
-        "phases": {
-          "rerank": {
-            "calls": 60,
-            "cost_cny": 0,
-            "input_tokens": 47972,
-            "output_tokens": 1032
-          },
-          "retrieval": {
-            "calls": 1,
-            "cost_cny": 0,
-            "input_tokens": 98,
-            "output_tokens": 18
-          },
-          "retrieval/dynamic": {
-            "calls": 20,
-            "cost_cny": 0,
-            "input_tokens": 6740,
-            "output_tokens": 780
-          },
-          "warmup/profile": {
-            "calls": 20,
-            "cost_cny": 0,
-            "input_tokens": 3600,
-            "output_tokens": 340
-          },
-          "warmup/recommend": {
-            "calls": 20,
-            "cost_cny": 0,
-            "input_tokens": 1320,
-            "output_tokens": 400
-          }
-        },
-        "reserved_or_failed_calls": 0,
-        "success_rate": 1.0,
-        "total_calls": 121,
-        "total_cost_cny": 0,
-        "total_input_tokens": 59730,
-        "total_output_tokens": 2570,
-        "unknown_cost_calls": 0
-      },
+      "run_id": "lean_100_i2agent",
       "model": "i2agent",
       "n_cases": 100,
-      "prepared_state_sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f",
-      "resume_no_new_requests": true,
-      "run_id": "native_v2_100_i2agent",
-      "source_sha256": "d84681b34d452f05388089ad99ae18b8d22f5639f54e161cb777d9708fea46bd",
-      "status": "completed"
+      "status": "completed",
+      "n_evaluated": 100,
+      "n_failed": 0,
+      "mock_calls": 121,
+      "resume_new_requests": 0
     },
     {
-      "manifest_sha256": "dbee268868f900c7498db619796aac167c8343ec159f27da08b15d4a0bec77bf",
-      "metrics": {
-        "avg_calls_per_case": 4.15,
-        "cache_hits": 85,
-        "conservative_reserved_cost_cny": 0,
-        "cost_estimated": true,
-        "count_as_failure": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.45435593380883454,
-          "NDCG@3": 0.21309297535714575
-        },
-        "exclude": {
-          "HR@1": 0.1,
-          "HR@10": 1.0,
-          "HR@3": 0.3,
-          "HR@5": 0.5,
-          "MRR": 0.2928968253968254,
-          "NDCG@10": 0.45435593380883454,
-          "NDCG@3": 0.21309297535714575
-        },
-        "n_evaluated": 100,
-        "n_failed": 0,
-        "phases": {
-          "rerank": {
-            "calls": 15,
-            "cost_cny": 0,
-            "input_tokens": 2678,
-            "output_tokens": 2748
-          },
-          "retrieval": {
-            "calls": 100,
-            "cost_cny": 0,
-            "input_tokens": 54104,
-            "output_tokens": 800
-          },
-          "warmup/memory_update": {
-            "calls": 100,
-            "cost_cny": 0,
-            "input_tokens": 15643,
-            "output_tokens": 4300
-          },
-          "warmup/rerank": {
-            "calls": 100,
-            "cost_cny": 0,
-            "input_tokens": 19211,
-            "output_tokens": 18423
-          },
-          "warmup/retrieval": {
-            "calls": 100,
-            "cost_cny": 0,
-            "input_tokens": 54109,
-            "output_tokens": 800
-          }
-        },
-        "reserved_or_failed_calls": 0,
-        "success_rate": 1.0,
-        "total_calls": 415,
-        "total_cost_cny": 0,
-        "total_input_tokens": 145745,
-        "total_output_tokens": 27071,
-        "unknown_cost_calls": 0
-      },
+      "run_id": "lean_100_memrec",
       "model": "memrec",
       "n_cases": 100,
-      "prepared_state_sha256": "454cd8f9dac8c16161de7d0abfb478bef402b53144239e448b2bfcca3140eea3",
-      "resume_no_new_requests": true,
-      "run_id": "native_v2_100_memrec",
-      "source_sha256": "d84681b34d452f05388089ad99ae18b8d22f5639f54e161cb777d9708fea46bd",
-      "status": "completed"
+      "status": "completed",
+      "n_evaluated": 100,
+      "n_failed": 0,
+      "mock_calls": 415,
+      "resume_new_requests": 0
     }
-  ],
-  "synthetic_only": true,
-  "implementation": "native-v2",
-  "source_file_count": 13,
-  "native_tests_passed": 56,
-  "optional_reference_tests_passed": 6
+  ]
 }

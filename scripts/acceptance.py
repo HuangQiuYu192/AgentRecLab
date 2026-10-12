@@ -14,9 +14,7 @@ from agentreclab.storage import file_hash, read_json, write_json
 async def execute(prefix):
     results = []
     for n in (10, 100):
-        fixture = make_fixture(
-            ROOT / "datasets" / "fixtures" / ("books" if n == 10 else "books100"), n
-        )
+        fixture = make_fixture(ROOT / "outputs" / "fixtures" / f"books{n}", n)
         runs = []
         for model in ("iagent", "i2agent", "memrec"):
             cfg = load_run(ROOT / "configs/runs/smoke_books.yaml", model=model)

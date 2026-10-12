@@ -61,7 +61,7 @@ def environment_versions():
     }
 
 
-def readiness(config, manifest):
+def readiness(config):
     if config["protocol_mode"] == "paper_reproduction":
         raise ValueError(
             "paper_reproduction not_ready: native models require protocol and real-data validation"
@@ -72,18 +72,17 @@ def readiness(config, manifest):
 
 
 def planned_calls(model, cases):
-    return len(cases) * {"iagent": 2, "i2agent": 5, "memrec": 2, "mars": 0}.get(model, 1) + (
+    return len(cases) * {"iagent": 2, "i2agent": 5, "memrec": 2}[model] + (
         3 * len({c.user_id for c in cases}) if model == "memrec" else 0
     )
 
 
 async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
+    model = create_model(config["model"])
     cases, interactions, catalog, data_manifest = load_dataset(config["manifest"])
     if not cases:
         raise ValueError("empty case manifest")
-    if config["model"] == "mars":
-        raise NotImplementedError("MARS experimental/not_ready; docs/model_mapping/mars.md")
-    status = readiness(config, data_manifest)
+    status = readiness(config)
     from agentreclab.llm import price
 
     calls = planned_calls(config["model"], cases)
@@ -206,7 +205,6 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
             config["protocol_mode"],
             config,
         )
-        model = create_model(config["model"])
         model.prepare(context)
         snapshot = directory / "state_prepared.json"
         if snapshot.exists() and manifest["state_snapshots"].get("prepared"):

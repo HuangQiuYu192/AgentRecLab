@@ -1,9 +1,0 @@
-run_id: books_1k
-manifest: datasets/manifests/books_1k.json
-protocol_mode: controlled_comparison
-provider: mock
-model: i2agent
-seed: 42
-max_calls: 10000
-concurrency: 4
-invalid_prediction_policy: fail
