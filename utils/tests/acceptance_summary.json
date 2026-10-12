@@ -1,0 +1,74 @@
+{
+  "implementation": "native-v2",
+  "layout": "configs/datasets/scripts/models/utils/main.py",
+  "python": "3.12.14",
+  "source_sha256": "f79927878a032429d9bbd9a14eebe012400a220c17e9978396a1d8e000ab2429",
+  "source_files": 14,
+  "tests_passed": 57,
+  "shell_scripts_verified": true,
+  "lint_and_format": "passed",
+  "synthetic_only": true,
+  "paid_api_calls": 0,
+  "results": [
+    {
+      "run_id": "layout_final_10_iagent",
+      "model": "iagent",
+      "n_cases": 10,
+      "status": "completed",
+      "n_evaluated": 10,
+      "n_failed": 0,
+      "mock_calls": 11,
+      "resume_new_requests": 0
+    },
+    {
+      "run_id": "layout_final_10_i2agent",
+      "model": "i2agent",
+      "n_cases": 10,
+      "status": "completed",
+      "n_evaluated": 10,
+      "n_failed": 0,
+      "mock_calls": 41,
+      "resume_new_requests": 0
+    },
+    {
+      "run_id": "layout_final_10_memrec",
+      "model": "memrec",
+      "n_cases": 10,
+      "status": "completed",
+      "n_evaluated": 10,
+      "n_failed": 0,
+      "mock_calls": 50,
+      "resume_new_requests": 0
+    },
+    {
+      "run_id": "layout_final_100_iagent",
+      "model": "iagent",
+      "n_cases": 100,
+      "status": "completed",
+      "n_evaluated": 100,
+      "n_failed": 0,
+      "mock_calls": 61,
+      "resume_new_requests": 0
+    },
+    {
+      "run_id": "layout_final_100_i2agent",
+      "model": "i2agent",
+      "n_cases": 100,
+      "status": "completed",
+      "n_evaluated": 100,
+      "n_failed": 0,
+      "mock_calls": 121,
+      "resume_new_requests": 0
+    },
+    {
+      "run_id": "layout_final_100_memrec",
+      "model": "memrec",
+      "n_cases": 100,
+      "status": "completed",
+      "n_evaluated": 100,
+      "n_failed": 0,
+      "mock_calls": 415,
+      "resume_new_requests": 0
+    }
+  ]
+}

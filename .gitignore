@@ -5,9 +5,10 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .env
-datasets/raw/
-datasets/canonical/
-datasets/manifests/
+datasets/raw/*
+!datasets/raw/.gitkeep
+datasets/processed/*
+!datasets/processed/demo_books/
 outputs/
 build/
 dist/
