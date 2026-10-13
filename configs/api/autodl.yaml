@@ -1,5 +1,5 @@
 name: compatible
-model: DeepSeek-R1-0528
+model: DeepSeek-V4.1-Flash
 snapshot: unknown
 endpoint: https://www.autodl.art/api/v1
 api_key_env: AUTODL_API_KEY
