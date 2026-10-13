@@ -128,7 +128,15 @@ class OpenAICompatible:
             timeout=config.get("timeout", 60), transport=self.transport
         ) as client:
             response = await client.post(url, headers=headers, params=params, json=payload)
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                detail = response.text.replace(secret, "[REDACTED]")[:2000]
+                raise httpx.HTTPStatusError(
+                    f"{exc}; provider response: {detail}",
+                    request=exc.request,
+                    response=exc.response,
+                ) from exc
             data = response.json()
         text = data["choices"][0]["message"]["content"]
         if not isinstance(text, str) or not text.strip():
