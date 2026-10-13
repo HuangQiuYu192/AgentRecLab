@@ -1,0 +1,13 @@
+name: compatible
+model: DeepSeek-R1-0528
+snapshot: unknown
+endpoint: https://www.autodl.art/api/v1
+api_key_env: AUTODL_API_KEY
+temperature: 0
+max_tokens: 4000
+timeout: 180
+retry_budget: 1
+json_mode: true
+capabilities:
+  supports_json_schema: false
+  supports_seed: false

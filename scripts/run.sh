@@ -6,6 +6,8 @@ cd -- "$ROOT"
 
 if [[ -n "${PYTHON:-}" ]]; then
     PYTHON_BIN="$PYTHON"
+elif [[ -n "${CONDA_PREFIX:-}" ]]; then
+    PYTHON_BIN="python"
 elif [[ -x "$ROOT/.venv/bin/python" ]]; then
     PYTHON_BIN="$ROOT/.venv/bin/python"
 elif [[ -f "$ROOT/.venv/Scripts/python.exe" ]]; then

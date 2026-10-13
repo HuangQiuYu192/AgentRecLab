@@ -5,8 +5,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def load_yaml(path):
+def load_yaml(path, allow_empty=False):
     result = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if result is None and allow_empty:
+        return {}
     if not isinstance(result, dict):
         raise ValueError("config must be a YAML mapping")
     return result
@@ -22,7 +24,7 @@ def load_run(path, provider=None, model=None):
     )
     config["model"] = model or config.get("model", "iagent")
     model_path = ROOT / "configs" / "models" / f"{config['model']}.yaml"
-    config["model_config"] = load_yaml(model_path) if model_path.exists() else {}
+    config["model_config"] = load_yaml(model_path, allow_empty=True) if model_path.exists() else {}
     mode = config.get("protocol_mode", "controlled_comparison")
     if mode not in ("controlled_comparison", "paper_reproduction"):
         raise ValueError("unknown protocol mode")

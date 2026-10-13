@@ -42,19 +42,19 @@ AgentRecLab/
 └── outputs/             自动生成的实验结果，不提交 Git
 ```
 
-`configs/models` 当前仅 MemRec 有可调参数；iAgent 系列保留固定算法流程，模型选择在实验配置中指定。测试集的最终指标统一由 `utils/evaluation/metrics.py` 计算。
+`configs/models` 为每个推荐模型保留独立配置文件；`iagent.yaml` 与 `i2agent.yaml` 当前为空，模型沿用现有固定流程，`memrec.yaml` 保存 MemRec 参数。选择模型时自动读取对应文件，空模型配置按 `{}` 处理。测试集的最终指标统一由 `utils/evaluation/metrics.py` 计算。
 
 ## 环境
 
-Python 3.11+，Windows PowerShell：
+Python 3.11+，推荐使用项目独立的 Conda 环境（Python 3.12）：
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e '.[dev]'
-.\.venv\Scripts\python.exe main.py doctor
+conda env create -f environment.yml
+conda activate agentreclab
+python main.py doctor
 ```
 
-Linux/macOS 使用 `.venv/bin/python`。`requirements.lock` 保存验证过的依赖版本。
+已有环境直接执行 `conda activate agentreclab`，无需重复创建。`requirements.lock` 保存验证过的依赖版本。下文的 `.\.venv\Scripts\python.exe` 命令在激活 Conda 后改用 `python`；也可使用 `conda run -n agentreclab python`。
 
 ## 启动实验
 
@@ -75,7 +75,7 @@ bash scripts/run_memrec.sh
 bash scripts/run_memrec.sh --provider qwen --dry-run
 ```
 
-脚本从任意工作目录启动，自动定位项目根目录和 `.venv`；可用 `PYTHON=/path/to/python` 指定解释器。Windows 请在 Git Bash 中运行 `.sh`，或使用上面的 PowerShell/Python 命令。
+脚本从任意工作目录启动，自动定位项目根目录，优先使用已激活的 Conda 环境，否则使用 `.venv`；可用 `PYTHON=/path/to/python` 指定解释器。Windows 请在 Git Bash 中运行 `.sh`，或使用上面的 PowerShell/Python 命令。
 脚本参数原样传给主入口，包括 `--config`、`--provider`、`--run-id`、`--resume`。同一 run ID 再次运行需 `--resume`，配置/数据/代码变化会拒绝恢复。
 
 ## 调用流程
