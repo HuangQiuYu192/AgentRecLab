@@ -107,8 +107,11 @@ def run(
     dry_run: bool = False,
     allow_paid: bool = False,
     run_id: str | None = None,
+    use_batch: bool | None = typer.Option(None, "--use-batch/--no-batch"),
 ):
     resolved = load_run(config, provider, model)
+    if use_batch is not None:
+        resolved["use_batch"] = use_batch
     if run_id:
         resolved["run_id"] = run_id
     elif model:

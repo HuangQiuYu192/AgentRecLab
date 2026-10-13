@@ -11,6 +11,11 @@ def clean(text):
 class IAgent(BaseModel):
     """Native static iAgent: instruction knowledge -> candidate reranking."""
 
+    supports_batch = True
+
+    async def predict_batch(self, cases, batch):
+        return await self.run_batch_steps(cases, batch)
+
     def inputs(self, case, events):
         catalog = self.context.catalog
         memory = "".join(
@@ -30,7 +35,7 @@ class IAgent(BaseModel):
         )
         return memory, candidates, [self.item_ids[i] for i in case.candidates]
 
-    async def knowledge(self, case):
+    def knowledge_messages(self, case):
         message = "Based on the following instruction, assist me in generating relevant knowledge. Please specify the types of descriptions that the recommended items should include. Do not directly recommend specific items. "
         messages = [
             {
@@ -40,14 +45,14 @@ class IAgent(BaseModel):
                 ),
             }
         ]
-        result = await self.ask(
-            messages, object_schema(knowledge=STRING), case.case_id, "retrieval"
-        )
-        return messages, result["knowledge"]
+        return messages
 
-    async def predict(self, case):
+    def workflow(self, case):
         memory, candidates, ids = self.inputs(case, self.history(case))
-        messages, knowledge = await self.knowledge(case)
+        messages = self.knowledge_messages(case)
+        knowledge = (
+            yield self.request(messages, object_schema(knowledge=STRING), case.case_id, "retrieval")
+        )["knowledge"]
         message = (
             "Based on the information, give recommendations for the user based on the constraints. "
         )
@@ -59,7 +64,7 @@ class IAgent(BaseModel):
                 ),
             }
         )
-        result = await self.ask(messages, RANK_SCHEMA, case.case_id, "rerank", case.candidates)
+        result = yield self.request(messages, RANK_SCHEMA, case.case_id, "rerank", case.candidates)
         return self.prediction(case, result)
 
     def prediction(self, case, result):

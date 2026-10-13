@@ -11,6 +11,7 @@ from utils.core.config import ROOT
 from utils.core.schema import ExperimentContext
 from utils.data.dataset import load_dataset, permutation
 from utils.evaluation.metrics import aggregate, evaluate_case
+from utils.experiment.batch import BatchClient, BatchPending, validate_batch
 from utils.experiment.llm import TracedProvider
 from utils.experiment.llm import create_provider as create
 from utils.experiment.storage import (
@@ -81,7 +82,9 @@ def planned_calls(model, cases):
 
 
 async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
-    model = create_model(config["model"])
+    validate_batch(config)
+    use_batch = config.get("use_batch", False)
+    model = create_model(config["model"], use_batch=use_batch)
     cases, interactions, catalog, data_manifest = load_dataset(config["manifest"])
     if not cases:
         raise ValueError("empty case manifest")
@@ -92,12 +95,16 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
     text_bytes = len(canonical(catalog).encode()) + max(len(c.instruction.encode()) for c in cases)
     estimated_input = calls * (text_bytes + config["provider"].get("max_tokens", 4000) * 4 + 16384)
     estimated_output = calls * config["provider"].get("max_tokens", 4000)
-    estimated_cost, _ = price(config["provider"], None, estimated_input, estimated_output)
+    pricing_config = config["provider"]
+    if use_batch:
+        pricing_config = {**pricing_config, "pricing": config.get("batch", {}).get("pricing")}
+    estimated_cost, _ = price(pricing_config, None, estimated_input, estimated_output)
     estimates = {
         "n_cases": len(cases),
         "planned_calls_without_retries": planned_calls(config["model"], cases),
         "max_calls": config.get("max_calls", 1000),
         "budget_cny": config.get("budget_cny"),
+        "use_batch": use_batch,
         "provider": config["provider"]["name"],
         "model": config["model"],
         "paid_calls": False,
@@ -223,6 +230,29 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
         completed = {r["case_id"] for r in store.rows() if r["status"] == "succeeded"}
         semaphore = asyncio.Semaphore(config.get("concurrency", 1))
 
+        def save_prediction(case, prediction):
+            policy = config.get("invalid_prediction_policy", "fail")
+            ids = permutation(prediction.ordered_item_ids, case.candidates, policy)
+            prediction = replace(prediction, ordered_item_ids=ids)
+            result = {
+                "user_id": case.user_id,
+                "prediction": asdict(prediction),
+                "metrics": evaluate_case(case, prediction),
+                "state_sha256": manifest["state_snapshots"]["prepared"],
+            }
+            store.put_case(case.case_id, "succeeded", result)
+
+        def save_failure(case, exc):
+            store.put_case(
+                case.case_id,
+                "failed",
+                {
+                    "user_id": case.user_id,
+                    "error_type": type(exc).__name__,
+                    "error": redact(str(exc)),
+                },
+            )
+
         async def execute(case):
             if case.case_id in completed:
                 return
@@ -245,33 +275,44 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
                         finally:
                             context.provider = original
                         ids = permutation(prediction.ordered_item_ids, case.candidates)
-                    prediction = replace(prediction, ordered_item_ids=ids)
-                    result = {
-                        "user_id": case.user_id,
-                        "prediction": asdict(prediction),
-                        "metrics": evaluate_case(case, prediction),
-                        "state_sha256": manifest["state_snapshots"]["prepared"],
-                    }
-                    store.put_case(case.case_id, "succeeded", result)
+                    save_prediction(case, replace(prediction, ordered_item_ids=ids))
                 except Exception as exc:
-                    store.put_case(
-                        case.case_id,
-                        "failed",
-                        {
-                            "user_id": case.user_id,
-                            "error_type": type(exc).__name__,
-                            "error": redact(str(exc)),
-                        },
-                    )
+                    save_failure(case, exc)
 
         # one_retry mutates provider injection; keep that explicitly serialized.
         if config.get("invalid_prediction_policy") == "one_retry":
             semaphore = asyncio.Semaphore(1)
-        await asyncio.gather(*(execute(c) for c in cases))
+        if use_batch:
+            remaining = [c for c in cases if c.case_id not in completed]
+            for case in remaining:
+                store.put_case(case.case_id, "running")
+            batch = BatchClient(config, directory, store, recorder)
+            try:
+                predictions = await model.predict_batch(remaining, batch)
+            except BatchPending as exc:
+                manifest["status"] = "batch_pending"
+                write_json(manifest_path, manifest)
+                return {
+                    "run": str(directory.resolve()),
+                    "status": "batch_pending",
+                    "message": str(exc),
+                }
+            for case in remaining:
+                try:
+                    prediction = predictions[case.case_id]
+                    if isinstance(prediction, Exception):
+                        raise prediction
+                    save_prediction(case, prediction)
+                except Exception as exc:
+                    save_failure(case, exc)
+        else:
+            await asyncio.gather(*(execute(c) for c in cases))
         rows = store.rows()
         metrics = aggregate(rows)
         costs = recorder.summary()
         costs.update(store.accounting_summary())
+        if use_batch:
+            costs["total_calls"] = store.db.execute("SELECT COUNT(*) FROM accounting").fetchone()[0]
         metrics.update(costs)
         metrics["avg_calls_per_case"] = costs["total_calls"] / len(cases)
         write_json(directory / "metrics.json", metrics)
@@ -281,10 +322,15 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
         )
         manifest["status"] = "completed" if metrics["n_failed"] == 0 else "completed_with_failures"
         manifest["metrics"] = metrics
+        manifest["execution_mode"] = "batch" if use_batch else "online"
         manifest["effective_concurrency"] = (
-            1
-            if config.get("invalid_prediction_policy") == "one_retry"
-            else config.get("concurrency", 1)
+            None
+            if use_batch
+            else (
+                1
+                if config.get("invalid_prediction_policy") == "one_retry"
+                else config.get("concurrency", 1)
+            )
         )
         write_json(manifest_path, manifest)
         return {"run": str(directory.resolve()), "status": manifest["status"], "metrics": metrics}

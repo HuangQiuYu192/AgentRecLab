@@ -62,6 +62,36 @@ class MockProvider:
         )
 
 
+def chat_payload(config, messages, schema=None):
+    payload = {
+        "model": config["model"],
+        "messages": messages,
+        "temperature": config.get("temperature", 0),
+        "max_tokens": config.get("max_tokens", 4000),
+    }
+    caps = config.get("capabilities", {})
+    if caps.get("supports_seed") and config.get("seed") is not None:
+        payload["seed"] = config["seed"]
+    if config.get("thinking") is not None:
+        payload.update(config["thinking"])
+    if caps.get("supports_json_schema") and schema:
+        payload["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {"name": "agentreclab", "strict": True, "schema": schema},
+        }
+    elif config.get("json_mode", True):
+        payload["response_format"] = {"type": "json_object"}
+        # JSON mode alone does not communicate the requested keys/types.
+        if schema:
+            payload["messages"] = [
+                {
+                    "role": "system",
+                    "content": "Return JSON matching this schema: " + json.dumps(schema),
+                }
+            ] + messages
+    return payload
+
+
 class OpenAICompatible:
     def __init__(self, config, transport=None):
         self.config = config
@@ -82,33 +112,7 @@ class OpenAICompatible:
         host = urlparse(endpoint).hostname
         if urlparse(endpoint).scheme != "https" and host not in ("localhost", "127.0.0.1", "::1"):
             raise ValueError("remote provider endpoints must use HTTPS")
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": config.get("temperature", 0),
-            "max_tokens": config.get("max_tokens", 4000),
-        }
-        caps = config.get("capabilities", {})
-        if caps.get("supports_seed") and config.get("seed") is not None:
-            payload["seed"] = config["seed"]
-        if config.get("thinking") is not None:
-            payload.update(config["thinking"])
-        if caps.get("supports_json_schema") and kwargs.get("schema"):
-            payload["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {"name": "agentreclab", "strict": True, "schema": kwargs["schema"]},
-            }
-        elif config.get("json_mode", True):
-            payload["response_format"] = {"type": "json_object"}
-            # JSON mode alone does not communicate the requested keys/types.
-            if kwargs.get("schema"):
-                payload["messages"] = [
-                    {
-                        "role": "system",
-                        "content": "Return JSON matching this schema: "
-                        + json.dumps(kwargs["schema"]),
-                    }
-                ] + messages
+        payload = chat_payload(config, messages, kwargs.get("schema"))
         if config["name"] == "azure":
             deployment = config.get("deployment")
             version = config.get("api_version")

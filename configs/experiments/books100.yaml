@@ -7,3 +7,11 @@ seed: 42
 max_calls: 2000
 concurrency: 4
 invalid_prediction_policy: fail
+use_batch: false
+batch:
+  completion_window: 24h
+  max_requests_per_file: 10000
+  max_input_bytes: 180000000
+  poll_interval_seconds: 30
+  poll_timeout_seconds: 120
+  # Optional pricing: supply verified, dated CNY batch prices for budget_cny.

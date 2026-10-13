@@ -33,7 +33,8 @@ AgentRecLab/
 │   │   └── dataset.py   数据转换、抽样、冻结、读取与校验
 │   ├── experiment/     实验执行与结果管理
 │   │   ├── runner.py    实验调度、恢复、源码校验
-│   │   ├── llm.py       LLM 请求、格式校验、缓存、预算
+│   │   ├── llm.py       即时 LLM 请求、格式校验、缓存、预算
+│   │   ├── batch.py     Batch 任务提交、查询、恢复与结果匹配
 │   │   └── storage.py   SQLite、快照、日志
 │   └── evaluation/
 │       └── metrics.py   测试集 HR、NDCG、MRR 与模型比较
@@ -125,3 +126,31 @@ pkl 是上游发布的 Python pickle 序列化文件，`pandas.read_pickle` 读�
 ```
 
 `exclude` 仅统计成功样例，`count_as_failure` 将失败样例记为零；同时输出成功数与失败数。当前输出 HR@1/3/5/10、NDCG@3/10 和 MRR。mock 的这些数值只能用于验证运行流程，真实推荐质量需使用真实 LLM 实验结果。
+
+## Batch 调用
+
+默认 `use_batch: false`。iAgent 和 i²Agent 的模型类声明支持 Batch；MemRec 默认使用即时调用，显式开启 Batch 会报错。即时与 Batch 共用模型 `workflow()` 的提示词和解析逻辑：即时模式逐步执行，Batch 模式由 `predict_batch()` 汇集各案例的同阶段请求。iAgent 为两阶段，i²Agent 为五阶段；当前保留原始执行顺序，没有合并独立步骤。
+
+先使用真实 Books100 数据和本地 mock 验证批处理路径：
+
+```powershell
+.\.venv\Scripts\python.exe main.py --config configs/experiments/books100.yaml --model iagent --use-batch --run-id books100_batch_mock
+.\.venv\Scripts\python.exe main.py --config configs/experiments/books100.yaml --model i2agent --use-batch --run-id books100_batch_mock_i2
+```
+
+真实 OpenAI Batch 使用原有环境变量 API Key。先预检查，再显式允许真实提交：
+
+```powershell
+.\.venv\Scripts\python.exe main.py --config configs/experiments/books100.yaml --model iagent --provider openai --use-batch --dry-run
+.\.venv\Scripts\python.exe main.py --config configs/experiments/books100.yaml --model iagent --provider openai --use-batch --allow-paid --run-id books100_openai_batch
+```
+
+第一版仅支持 OpenAI Batch 和本地 mock，不把 Azure/Qwen 的 Chat Completions 兼容接口自动当成 Batch 接口。支持的模型和额度取决于服务账号。[官方 Batch 文档](https://developers.openai.com/api/docs/guides/batch)说明批处理提供 50% 费用折扣，使用 24 小时处理窗口。
+
+`batch` 配置控制每文件请求数、文件字节数、查询间隔与本次查询等待时间。`concurrency` 不控制 Batch 内部并行度；`max_calls` 按文件内的模型请求条数计数，包括失败或仍预留的请求，不按批任务数量计数。超出整个文件的请求/费用额度时，不提交该文件。大阶段会按数量及字节数拆成多个文件。
+
+默认每次最多查询等待 120 秒。任务仍在处理时主入口返回 `batch_pending`，远端任务继续运行；用原命令加 `--resume` 继续查询并进入下一阶段。相同实验必须保留原配置、源码、数据和 run ID。Batch 不支持即时模式的 `one_retry` 排序修复；可用 `fail` 或 `append_missing`。
+
+本地 `outputs/runs/<run_id>/batches/` 保存每个任务的请求、任务 ID、状态和下载结果；结果按 `custom_id` 匹配。请求级结果保存在 SQLite，恢复时复用已完成步骤和原任务，不重复提交。终态错误结果同样保留，不会在 `--resume` 时自动重投。若提交已发出但响应丢失，会拒绝自动重投：需要核对服务端任务，并在对应 `job.json` 中补回 `batch_id` 后恢复。
+
+Batch 费用只读取 `batch.pricing` 的显式价格表，字段与 API 配置中的 `pricing` 相同（CNY、effective_date、input_per_million、output_per_million、可选 cached_per_million）。未配置则标记费用未知，不套用标准请求单价；使用 `budget_cny` 时必须配置经核验的 Batch 价格。

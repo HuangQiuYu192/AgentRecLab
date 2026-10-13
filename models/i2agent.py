@@ -5,7 +5,7 @@ from utils.core.base import RANK_SCHEMA, STRING, object_schema
 class I2Agent(IAgent):
     """Native dynamic i²Agent: training feedback profile + instruction-conditioned interests."""
 
-    async def predict(self, case):
+    def workflow(self, case):
         events = self.history(case)[-15:]
         if len(events) < 2:
             raise ValueError("i2Agent requires at least two training history events")
@@ -32,7 +32,7 @@ class I2Agent(IAgent):
                 ),
             }
         ]
-        recommendation = await self.ask(
+        recommendation = yield self.request(
             initial, object_schema(recommend_content=STRING), case.case_id, "warmup/recommend"
         )
         initial.append(
@@ -52,10 +52,15 @@ class I2Agent(IAgent):
             }
         )
         profile = (
-            await self.ask(initial, object_schema(profile=STRING), case.case_id, "warmup/profile")
+            yield self.request(
+                initial, object_schema(profile=STRING), case.case_id, "warmup/profile"
+            )
         )["profile"]
         memory, candidates, ids = self.inputs(case, events)
-        messages, knowledge = await self.knowledge(case)
+        messages = self.knowledge_messages(case)
+        knowledge = (
+            yield self.request(messages, object_schema(knowledge=STRING), case.case_id, "retrieval")
+        )["knowledge"]
         message = "Based on the generated knowledge and the instruction, extract some dynamic interest information from the static memory. Moreover, based on the profile and the instruction, extract some dynamic profile information. "
         messages.append(
             {
@@ -65,7 +70,7 @@ class I2Agent(IAgent):
                 ),
             }
         )
-        dynamic = await self.ask(
+        dynamic = yield self.request(
             messages,
             object_schema(dynamic_interest=STRING, dynamic_profile=STRING),
             case.case_id,
@@ -89,5 +94,5 @@ class I2Agent(IAgent):
                 ),
             }
         )
-        result = await self.ask(messages, RANK_SCHEMA, case.case_id, "rerank", case.candidates)
+        result = yield self.request(messages, RANK_SCHEMA, case.case_id, "rerank", case.candidates)
         return self.prediction(case, result)
