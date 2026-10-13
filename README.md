@@ -106,6 +106,8 @@ python -m ruff check main.py models utils
 
 API Key 从环境变量读取，provider 参数在 `configs/api/` 配置。真实调用先 `--dry-run`，再显式 `--allow-paid`。CNY 预算需带日期的 token 价格；请求发出后、响应保存前崩溃会留下 inflight 标记，需核对服务端记录。
 
+AutoDL 配置使用 `DeepSeek-V4.1-Flash`，省略 `max_tokens`，并通过 `thinking: {type: disabled}` 请求非思考模式。不配置 `max_tokens` 或将其设为 `null` 时，请求不会自动补入默认上限；预检查的 token/费用上限显示未知。服务商仍有自己的默认长度限制；是否实际关闭思考需核对真实响应的 reasoning token 用量。金额预算预留需要明确的输出 token 上限，省略上限时可使用 `max_calls` 控制请求次数。
+
 当前为 native controlled comparison。MemRec 提示词已精简，未宣称严格论文复现；`paper_reproduction` 拒绝运行。已在真实 Books 100 用户子集验证 mock 流程，尚无付费/真实 LLM 的论文指标验证。实验结果保存在 `outputs/runs/<run_id>/metrics.json`，预测明细保存在 `predictions.jsonl`。
 
 ## Books 原始文件格式

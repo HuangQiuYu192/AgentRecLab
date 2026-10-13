@@ -4,7 +4,8 @@ snapshot: unknown
 endpoint: https://www.autodl.art/api/v1
 api_key_env: AUTODL_API_KEY
 temperature: 0
-max_tokens: 4000
+thinking:
+  type: disabled
 timeout: 180
 retry_budget: 1
 json_mode: true

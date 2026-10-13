@@ -93,12 +93,19 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
 
     calls = planned_calls(config["model"], cases)
     text_bytes = len(canonical(catalog).encode()) + max(len(c.instruction.encode()) for c in cases)
-    estimated_input = calls * (text_bytes + config["provider"].get("max_tokens", 4000) * 4 + 16384)
-    estimated_output = calls * config["provider"].get("max_tokens", 4000)
+    output_cap = config["provider"].get("max_tokens")
+    if output_cap is None and config.get("budget_cny") is not None:
+        raise ValueError("a cost budget requires an explicit output token cap")
+    estimated_input = (
+        calls * (text_bytes + output_cap * 4 + 16384) if output_cap is not None else None
+    )
+    estimated_output = calls * output_cap if output_cap is not None else None
     pricing_config = config["provider"]
     if use_batch:
         pricing_config = {**pricing_config, "pricing": config.get("batch", {}).get("pricing")}
-    estimated_cost, _ = price(pricing_config, None, estimated_input, estimated_output)
+    estimated_cost = None
+    if output_cap is not None:
+        estimated_cost, _ = price(pricing_config, None, estimated_input, estimated_output)
     estimates = {
         "n_cases": len(cases),
         "planned_calls_without_retries": planned_calls(config["model"], cases),
@@ -111,7 +118,11 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
         "estimated_input_token_bound": estimated_input,
         "estimated_output_token_cap": estimated_output,
         "estimated_cost_cny": estimated_cost,
-        "estimate_method": "rough byte bound including catalog/context allowance; before retries/cache, not a bill",
+        "estimate_method": (
+            "rough byte bound including catalog/context allowance; before retries/cache, not a bill"
+            if output_cap is not None
+            else "output limit omitted; provider default unknown; token and cost bounds unavailable"
+        ),
     }
     if dry_run:
         return estimates

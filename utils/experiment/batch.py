@@ -130,6 +130,9 @@ class BatchClient:
 
     def reserve(self, chunk):
         # Reserve the entire file atomically before submitting any paid request.
+        output_cap = self.provider.get("max_tokens")
+        if output_cap is None and self.config.get("budget_cny") is not None:
+            raise ValueError("a cost budget requires an explicit output token cap")
         with self.store.lock, self.store.db:
             calls, spent = self.store.db.execute(
                 "SELECT COUNT(*),COALESCE(SUM(cost),0) FROM accounting"
@@ -139,12 +142,9 @@ class BatchClient:
                 rid = "batch:" + item["custom_id"]
                 if self.store.db.execute("SELECT 1 FROM accounting WHERE id=?", (rid,)).fetchone():
                     continue
-                amount, _ = price(
-                    self.pricing,
-                    None,
-                    len(canonical(item).encode()),
-                    self.provider.get("max_tokens", 4000),
-                )
+                amount = None
+                if output_cap is not None:
+                    amount, _ = price(self.pricing, None, len(canonical(item).encode()), output_cap)
                 additions.append((rid, amount or 0, "reserved"))
             if calls + len(additions) > self.config.get("max_calls", 1000):
                 raise BudgetExceeded("batch request budget exhausted before submission")

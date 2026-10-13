@@ -67,13 +67,17 @@ def chat_payload(config, messages, schema=None):
         "model": config["model"],
         "messages": messages,
         "temperature": config.get("temperature", 0),
-        "max_tokens": config.get("max_tokens", 4000),
     }
+    if config.get("max_tokens") is not None:
+        payload["max_tokens"] = config["max_tokens"]
     caps = config.get("capabilities", {})
     if caps.get("supports_seed") and config.get("seed") is not None:
         payload["seed"] = config["seed"]
     if config.get("thinking") is not None:
-        payload.update(config["thinking"])
+        if "type" in config["thinking"]:
+            payload["thinking"] = config["thinking"]
+        else:
+            payload.update(config["thinking"])
     if caps.get("supports_json_schema") and schema:
         payload["response_format"] = {
             "type": "json_schema",
@@ -272,9 +276,12 @@ class TracedProvider:
                 return result
             # Include the schema added for JSON-only endpoints in the byte/token bound.
             input_estimate = len(json.dumps(request, ensure_ascii=False).encode())
-            reserved_cost, _ = price(
-                self.config, None, input_estimate, self.config.get("max_tokens", 4000)
-            )
+            output_cap = self.config.get("max_tokens")
+            if self.budget_cny is not None and output_cap is None:
+                raise ValueError("a cost budget requires an explicit output token cap")
+            reserved_cost = None
+            if output_cap is not None:
+                reserved_cost, _ = price(self.config, None, input_estimate, output_cap)
             if self.budget_cny is not None and reserved_cost is None:
                 raise ValueError("a cost budget requires a dated provider price table")
             for attempt in range(self.config.get("retry_budget", 2) + 1):
