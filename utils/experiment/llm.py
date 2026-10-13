@@ -140,7 +140,17 @@ class OpenAICompatible:
             data = response.json()
         text = data["choices"][0]["message"]["content"]
         if not isinstance(text, str) or not text.strip():
-            raise ValueError("empty provider response")
+            choice = data["choices"][0]
+            message = choice["message"]
+            diagnostics = {
+                "finish_reason": choice.get("finish_reason"),
+                "usage": data.get("usage"),
+                "reasoning_chars": len(message.get("reasoning_content") or ""),
+                "tool_calls": len(message.get("tool_calls") or []),
+                "message_fields": list(message),
+                "request_id": data.get("id"),
+            }
+            raise ValueError("empty provider response: " + json.dumps(diagnostics))
         usage = data.get("usage")
         parsed = (
             LLMUsage(
