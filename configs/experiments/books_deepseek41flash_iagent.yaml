@@ -1,0 +1,10 @@
+run_id: books_deepseek41flash_iagent
+manifest: datasets/processed/books/dataset_manifest.json
+protocol_mode: controlled_comparison
+provider: autodl
+model: iagent
+seed: 42
+max_calls: 30000
+concurrency: 1
+invalid_prediction_policy: fail
+use_batch: false
