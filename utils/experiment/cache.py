@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+import uuid
 from collections import Counter
 from contextlib import closing
 from pathlib import Path
@@ -37,6 +38,63 @@ def compatible_providers(old, new):
     if expected != new:
         raise ValueError("response cache provider mismatch beyond JSON Schema capability")
     return True
+
+
+def reconstruct_redacted_requests(keys, responses, previous, config):
+    """Recover exact hashes from frozen data, not from text scrubbed by Recorder."""
+    from models import create_model
+    from utils.core.schema import ExperimentContext
+    from utils.data.dataset import load_dataset
+
+    cases, events, catalog, _ = load_dataset(config["manifest"])
+    model = create_model(config["model"])
+    context = ExperimentContext(
+        catalog,
+        {event.event_id: event for event in events},
+        cases,
+        None,
+        None,
+        None,
+        previous["config"]["protocol_mode"],
+        previous["config"],
+    )
+    model.prepare(context)
+    recovered = {}
+    for case in cases:
+        steps = model.workflow(case)
+        answer = None
+        try:
+            # Only original phases; no retry/repair or network access during reconstruction.
+            for _ in range(2 if config["model"] == "iagent" else 5):
+                request = steps.send(answer)
+                original = {
+                    "provider": previous["config"]["provider"],
+                    "messages": request["messages"],
+                    "parameters": {
+                        k: v
+                        for k, v in request["kwargs"].items()
+                        if k not in ("case_id", "phase", "single_attempt")
+                    },
+                    "cache_version": 1,
+                }
+                key = digest(original)
+                if key in keys:
+                    recovered[key] = original
+                if key not in responses:
+                    break
+                answer = json.loads(json.loads(responses[key])["text"])
+                validate_schema(answer, original["parameters"]["schema"])
+        except (StopIteration, KeyError, ValueError, TypeError):
+            pass
+        finally:
+            steps.close()
+        if keys <= recovered.keys():
+            break
+    if keys - recovered.keys():
+        raise ValueError(
+            "source request hash mismatch: frozen-data reconstruction could not verify every key"
+        )
+    return recovered
 
 
 def import_response_cache(source, store, config):
@@ -89,14 +147,18 @@ def import_response_cache(source, store, config):
         ]
     wanted = {key for key, _ in responses} | set(unresolved_keys)
     requests = {}
+    redacted = set()
     with (source / "traces.jsonl").open(encoding="utf-8") as stream:
         for line in stream:
             row = json.loads(line)
             if row.get("event") == "dispatch" and row.get("cache_key") in wanted:
                 request = row["request"]
                 if digest(request) != row["cache_key"]:
-                    raise ValueError("source request hash mismatch")
+                    redacted.add(row["cache_key"])
+                    continue
                 requests[row["cache_key"]] = request
+    if redacted:
+        requests.update(reconstruct_redacted_requests(redacted, dict(responses), previous, config))
     valid, aliases, excluded, reasons = [], [], [], Counter()
     for key, response in responses:
         try:
@@ -145,6 +207,7 @@ def import_response_cache(source, store, config):
         "source_manifest_sha256": file_hash(source / "manifest.json"),
         "source_trace_sha256": file_hash(source / "traces.jsonl"),
         "schema_upgrade": upgraded,
+        "redacted_trace_requests_reconstructed": len(redacted),
         "responses": len(valid),
         "aliases": len(aliases),
         "excluded_responses": len(excluded),
@@ -164,7 +227,8 @@ def prepare_response_cache(source, out, config):
         raise ValueError(
             "cache output already exists; use a new directory to preserve the snapshot"
         )
-    store = StateStore(out / "state.sqlite")
+    staging = out.with_name(f".{out.name}.pending_{uuid.uuid4().hex[:8]}")
+    store = StateStore(staging / "state.sqlite")
     try:
         report = import_response_cache(source, store, config)
         integrity = store.db.execute("PRAGMA integrity_check").fetchone()[0]
@@ -173,14 +237,15 @@ def prepare_response_cache(source, out, config):
     finally:
         store.close()
     write_json(
-        out / "cache_manifest.json",
+        staging / "cache_manifest.json",
         {
             "version": 1,
             "target_model": config["model"],
             "target_provider": redact(config["provider"]),
             "dataset_manifest_sha256": file_hash(config["manifest"]),
-            "database_sha256": file_hash(out / "state.sqlite"),
+            "database_sha256": file_hash(staging / "state.sqlite"),
             "report": report,
         },
     )
+    staging.rename(out)
     return {"prepared_cache": str(out), **{k: v for k, v in report.items() if k != "excluded"}}
