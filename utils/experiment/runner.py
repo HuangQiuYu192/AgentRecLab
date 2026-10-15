@@ -1,7 +1,9 @@
 import asyncio
 import platform
 import re
+import sqlite3
 import subprocess
+from contextlib import closing
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -81,6 +83,35 @@ def planned_calls(model, cases):
     )
 
 
+def import_response_cache(source, store, config):
+    """Import exact-request responses, never completed predictions or an old fingerprint."""
+    source = Path(source)
+    if not source.is_absolute():
+        source = ROOT / source
+    previous = read_json(source / "manifest.json")
+    if previous["dataset_manifest_sha256"] != file_hash(config["manifest"]):
+        raise ValueError("response cache dataset mismatch")
+    if previous["config"]["provider"] != redact(config["provider"]):
+        raise ValueError("response cache provider mismatch")
+    with closing(
+        sqlite3.connect(f"file:{(source / 'state.sqlite').as_posix()}?mode=ro", uri=True)
+    ) as old:
+        responses = old.execute("SELECT key,response FROM responses").fetchall()
+        unresolved = old.execute(
+            "SELECT key,status FROM inflight WHERE status='dispatched'"
+        ).fetchall()
+    with store.db:
+        store.db.executemany("INSERT OR IGNORE INTO responses VALUES (?,?)", responses)
+        # Do not silently redispatch the request that was in flight at interruption.
+        store.db.executemany("INSERT OR IGNORE INTO inflight VALUES (?,?)", unresolved)
+    return {
+        "source_run": str(source),
+        "responses": len(responses),
+        "unresolved_requests": len(unresolved),
+        "accounting": "new requests only; prior charges remain in the source run",
+    }
+
+
 async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
     validate_batch(config)
     use_batch = config.get("use_batch", False)
@@ -109,6 +140,9 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
     estimates = {
         "n_cases": len(cases),
         "planned_calls_without_retries": planned_calls(config["model"], cases),
+        "max_agent_attempts_with_repairs": (
+            3 * (calls + 3 * len(cases)) if config["model"] in ("iagent", "i2agent") else None
+        ),
         "max_calls": config.get("max_calls", 1000),
         "budget_cny": config.get("budget_cny"),
         "use_batch": use_batch,
@@ -134,8 +168,6 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
     directory = Path(config.get("outputs", ROOT / "outputs" / "runs")) / rid
     directory.mkdir(parents=True, exist_ok=True)
     # Atomic cross-process lock; released by OS after a crash (SQLite exclusive transaction).
-    import sqlite3
-
     run_lock = sqlite3.connect(directory / "run_lock.sqlite", timeout=0)
     try:
         run_lock.execute("BEGIN EXCLUSIVE")
@@ -194,7 +226,20 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
                 "deviations": [
                     "native implementations; no runtime upstream code",
                     "MemRec uses concise native prompts; not a strict paper reproduction",
-                    "test labels never passed to LLM or label-dependent repair",
+                    "test labels never passed in LLM prompts",
+                    (
+                        "upstream compatibility: label-dependent target-presence repair; "
+                        "incomplete/duplicate lists accepted when target is present"
+                        if config.get("invalid_prediction_policy") == "upstream"
+                        else "label-free complete-candidate validation and repair"
+                    ),
+                    (
+                        "provider JSON-object fallback plus local schema validation"
+                        if not config["provider"]
+                        .get("capabilities", {})
+                        .get("supports_json_schema")
+                        else "provider strict JSON schema"
+                    ),
                     "original candidate order frozen",
                     "no test feedback propagation",
                     "training graph temporal cutoff",
@@ -207,6 +252,11 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
             write_json(manifest_path, manifest)
             write_json(directory / "config.json", safe_config)
         store = StateStore(directory / "state.sqlite")
+        if config.get("reuse_responses_from") and "cache_import" not in manifest:
+            manifest["cache_import"] = import_response_cache(
+                config["reuse_responses_from"], store, config
+            )
+            write_json(manifest_path, manifest)
         recorder = Recorder(directory)
         provider = TracedProvider(
             create(config["provider"]),
@@ -243,12 +293,16 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
 
         def save_prediction(case, prediction):
             policy = config.get("invalid_prediction_policy", "fail")
-            ids = permutation(prediction.ordered_item_ids, case.candidates, policy)
+            ids = (
+                prediction.ordered_item_ids
+                if policy == "upstream"
+                else permutation(prediction.ordered_item_ids, case.candidates, policy)
+            )
             prediction = replace(prediction, ordered_item_ids=ids)
             result = {
                 "user_id": case.user_id,
                 "prediction": asdict(prediction),
-                "metrics": evaluate_case(case, prediction),
+                "metrics": evaluate_case(case, prediction, policy),
                 "state_sha256": manifest["state_snapshots"]["prepared"],
             }
             store.put_case(case.case_id, "succeeded", result)
@@ -273,7 +327,11 @@ async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):
                     prediction = await model.predict(case)
                     policy = config.get("invalid_prediction_policy", "fail")
                     try:
-                        ids = permutation(prediction.ordered_item_ids, case.candidates, policy)
+                        ids = (
+                            prediction.ordered_item_ids
+                            if policy == "upstream"
+                            else permutation(prediction.ordered_item_ids, case.candidates, policy)
+                        )
                     except ValueError:
                         if policy != "one_retry":
                             raise

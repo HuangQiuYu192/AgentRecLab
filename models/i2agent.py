@@ -1,5 +1,5 @@
 from models.iagent import IAgent, clean
-from utils.core.base import RANK_SCHEMA, STRING, object_schema
+from utils.core.base import STRING, object_schema
 
 
 class I2Agent(IAgent):
@@ -32,7 +32,7 @@ class I2Agent(IAgent):
                 ),
             }
         ]
-        recommendation = yield self.request(
+        recommendation = yield from self.request_step(
             initial, object_schema(recommend_content=STRING), case.case_id, "warmup/recommend"
         )
         initial.append(
@@ -52,14 +52,16 @@ class I2Agent(IAgent):
             }
         )
         profile = (
-            yield self.request(
+            yield from self.request_step(
                 initial, object_schema(profile=STRING), case.case_id, "warmup/profile"
             )
         )["profile"]
         memory, candidates, ids = self.inputs(case, events)
         messages = self.knowledge_messages(case)
         knowledge = (
-            yield self.request(messages, object_schema(knowledge=STRING), case.case_id, "retrieval")
+            yield from self.request_step(
+                messages, object_schema(knowledge=STRING), case.case_id, "retrieval"
+            )
         )["knowledge"]
         message = "Based on the generated knowledge and the instruction, extract some dynamic interest information from the static memory. Moreover, based on the profile and the instruction, extract some dynamic profile information. "
         messages.append(
@@ -70,7 +72,7 @@ class I2Agent(IAgent):
                 ),
             }
         )
-        dynamic = yield self.request(
+        dynamic = yield from self.request_step(
             messages,
             object_schema(dynamic_interest=STRING, dynamic_profile=STRING),
             case.case_id,
@@ -94,5 +96,8 @@ class I2Agent(IAgent):
                 ),
             }
         )
-        result = yield self.request(messages, RANK_SCHEMA, case.case_id, "rerank", case.candidates)
-        return self.prediction(case, result)
+        return (
+            yield from self.finish_ranking(
+                case, messages, memory, candidates, ids, knowledge, dynamic, profile
+            )
+        )

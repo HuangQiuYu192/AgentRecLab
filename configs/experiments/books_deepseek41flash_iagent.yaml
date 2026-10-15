@@ -1,4 +1,5 @@
-run_id: books_deepseek41flash_iagent
+run_id: books_deepseek41flash_iagent_upstream
+reuse_responses_from: outputs/runs/books_deepseek41flash_iagent
 manifest: datasets/processed/books/dataset_manifest.json
 protocol_mode: controlled_comparison
 provider: autodl
@@ -6,5 +7,5 @@ model: iagent
 seed: 42
 max_calls: 30000
 concurrency: 1
-invalid_prediction_policy: fail
+invalid_prediction_policy: upstream
 use_batch: false

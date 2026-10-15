@@ -1,5 +1,7 @@
+import asyncio
 import json
 
+from utils.core.schema import BudgetExceeded
 from utils.experiment.llm import validate_schema
 from utils.experiment.storage import read_json, write_json
 
@@ -83,10 +85,19 @@ class BaseModel:
                     request = steps.send(answer)
                 except StopIteration as done:
                     return done.value
-                result = await self.context.provider.generate(
-                    request["messages"], **request["kwargs"]
-                )
-                answer = self.parse(result, request)
+                try:
+                    result = await self.context.provider.generate(
+                        request["messages"], **request["kwargs"]
+                    )
+                    answer = self.parse(result, request)
+                except Exception as exc:
+                    if not getattr(self, "handles_step_errors", False):
+                        raise
+                    if not isinstance(
+                        exc, (ValueError, TypeError, KeyError, BudgetExceeded)
+                    ) and not (isinstance(exc, RuntimeError) and "outcome is unknown" in str(exc)):
+                        await asyncio.sleep(5)
+                    answer = exc
         finally:
             steps.close()
 
@@ -114,8 +125,11 @@ class BaseModel:
                             raise reply
                         answers[cid] = self.parse(reply, request)
                     except Exception as exc:
-                        results[cid] = exc
-                        active.pop(cid).close()
+                        if getattr(self, "handles_step_errors", False):
+                            answers[cid] = exc
+                        else:
+                            results[cid] = exc
+                            active.pop(cid).close()
             return results
         finally:
             for steps in active.values():

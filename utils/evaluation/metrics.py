@@ -22,8 +22,14 @@ def at_rank(rank):
     return result
 
 
-def evaluate_case(case, prediction):
-    ids = permutation(prediction.ordered_item_ids, case.candidates)
+def evaluate_case(case, prediction, policy="fail"):
+    ids = (
+        prediction.ordered_item_ids
+        if policy == "upstream"
+        else permutation(prediction.ordered_item_ids, case.candidates)
+    )
+    if case.positive_item_id not in ids:
+        raise ValueError("positive target absent after upstream repair")
     return at_rank(ids.index(case.positive_item_id) + 1)
 
 

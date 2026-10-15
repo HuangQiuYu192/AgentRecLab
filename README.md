@@ -129,7 +129,19 @@ pkl 是上游发布的 Python pickle 序列化文件，`pandas.read_pickle` 读�
 
 `exclude` 仅统计成功样例，`count_as_failure` 将失败样例记为零；同时输出成功数与失败数。当前输出 HR@1/3/5/10、NDCG@3/10 和 MRR。mock 的这些数值只能用于验证运行流程，真实推荐质量需使用真实 LLM 实验结果。
 
-## Batch 调用
+## iAgent / i²Agent 的上游异常处理
+
+每个步骤最多尝试 3 次，包括请求异常、JSON 解析和字段校验失败；实际重试使用独立缓存键，不会反复读到同一条错误响应。请求异常等待 5 秒，解析错误立即重试。阶段耗尽后按上游使用 `Extract Error!` 占位，最终排序仍有最多 3 轮纠正，每轮最多 3 次请求。调用预算和结果不明的中断请求仍会立即停止该案例，不绕过保护。
+
+Books5 和全量 Books 配置采用 `invalid_prediction_policy: upstream`。它刻意复现发布代码的行为：只在真实测试目标未出现在排序结果中时触发纠正；目标存在时，即使列表遗漏其他候选、重复或包含其他 ID，也按目标首次出现的位置计分。这个流程依赖测试标签，标签不会写入提示词，但会影响是否追加请求，因此不能称为无标签的推理协议。默认 `fail` 策略仍使用完整候选校验，不能与 upstream 结果混为同一协议。上游最终失败案例从平均指标排除；本项目同时保留 `exclude` 和 `count_as_failure` 两种统计。
+
+支持服务端 JSON Schema 的接口仍发送 `json_schema` 和 `strict: true`；AutoDL 未验证该能力，继续使用 JSON-object 和本地 schema 校验。它比上游仅提取 JSON 字段更严格，不保证与 GPT-4o-mini 的严格结构化输出完全等价。持续拒答或内容过滤仍可能失败。
+
+新版实验使用 `_upstream` 结尾的新 run ID。全量 iAgent 通过 `reuse_responses_from` 从旧运行导入响应缓存，按完整请求散列复用，再重新执行新流程和评估；不复制旧预测，不修改旧 fingerprint。导入会验证数据与 provider 一致，并保留结果不明的请求，避免重复扣费。新目录的费用仅统计新请求，历史费用留在源运行，导入来源记录在 `manifest.json` 的 `cache_import` 中。全量配置要求旧 iAgent 运行目录存在；首次从零启动可删除 `reuse_responses_from`。
+
+旧进程已暂停时，不要用 `SIGCONT` 把它当作新版继续运行：它内存里仍是旧实现。应结束旧启动器与旧 Python 进程后，再运行后台脚本启动新版；后台脚本在单个实验完成但含失败案例时仍会继续下一个模型，真正崩溃时停止。修改代码不表示自动恢复付费运行。
+
+## Batch 调用方式
 
 默认 `use_batch: false`。iAgent 和 i²Agent 的模型类声明支持 Batch；MemRec 默认使用即时调用，显式开启 Batch 会报错。即时与 Batch 共用模型 `workflow()` 的提示词和解析逻辑：即时模式逐步执行，Batch 模式由 `predict_batch()` 汇集各案例的同阶段请求。iAgent 为两阶段，i²Agent 为五阶段；当前保留原始执行顺序，没有合并独立步骤。
 

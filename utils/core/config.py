@@ -33,8 +33,14 @@ def load_run(path, provider=None, model=None):
         "fail",
         "one_retry",
         "append_missing",
+        "upstream",
     ):
         raise ValueError("unknown prediction policy")
+    if config.get("invalid_prediction_policy") == "upstream" and config["model"] not in (
+        "iagent",
+        "i2agent",
+    ):
+        raise ValueError("upstream prediction policy is only for iAgent/i2Agent")
     if int(config.get("concurrency", 1)) < 1:
         raise ValueError("concurrency must be positive")
     return config

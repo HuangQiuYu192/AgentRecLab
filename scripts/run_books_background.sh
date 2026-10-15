@@ -10,9 +10,15 @@ if [[ "${1:-}" == "--worker" ]]; then
     trap 'code=$?; if (( code != 0 )); then printf "failed (exit %s)\n" "$code" > "$RUN_DIR/status"; fi' EXIT
     for MODEL in iagent i2agent; do
         printf 'running %s\n' "$MODEL" > "$RUN_DIR/status"
+        code=0
         "$PYTHON_BIN" -u main.py run \
             --config "configs/experiments/books_deepseek41flash_${MODEL}.yaml" \
-            --resume --allow-paid > "$RUN_DIR/${MODEL}.log" 2>&1
+            --resume --allow-paid > "$RUN_DIR/${MODEL}.log" 2>&1 || code=$?
+        if (( code != 0 )); then
+            # The CLI uses exit 1 for completed_with_failures; real crashes must stop.
+            "$PYTHON_BIN" -c 'import json,sys; from utils.core.config import load_run; from pathlib import Path; c=load_run(sys.argv[1]); p=Path("outputs/runs")/c["run_id"]/"manifest.json"; m=json.loads(p.read_text()); sys.exit(0 if m.get("status")=="completed_with_failures" else 1)' \
+                "configs/experiments/books_deepseek41flash_${MODEL}.yaml" || exit "$code"
+        fi
     done
     printf 'finished; inspect both experiment metrics for failed cases\n' > "$RUN_DIR/status"
     exit 0

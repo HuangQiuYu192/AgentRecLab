@@ -245,7 +245,9 @@ class TracedProvider:
     async def generate(self, messages, **kwargs):
         phase, cid = kwargs.get("phase", "rerank"), kwargs.get("case_id", "prepare")
         # Phase/case labels do not affect response bytes; candidate IDs do affect mock output.
-        semantic = {k: v for k, v in kwargs.items() if k not in ("case_id", "phase")}
+        semantic = {
+            k: v for k, v in kwargs.items() if k not in ("case_id", "phase", "single_attempt")
+        }
         request = {
             "provider": self.config,
             "messages": messages,
@@ -284,7 +286,8 @@ class TracedProvider:
                 reserved_cost, _ = price(self.config, None, input_estimate, output_cap)
             if self.budget_cny is not None and reserved_cost is None:
                 raise ValueError("a cost budget requires a dated provider price table")
-            for attempt in range(self.config.get("retry_budget", 2) + 1):
+            retry_budget = 0 if kwargs.get("single_attempt") else self.config.get("retry_budget", 2)
+            for attempt in range(retry_budget + 1):
                 self.store.begin_request(key)
                 rid = str(uuid.uuid4())
                 try:
@@ -325,7 +328,7 @@ class TracedProvider:
                         isinstance(exc, httpx.HTTPStatusError)
                         and (exc.response.status_code == 429 or exc.response.status_code >= 500)
                     )
-                    if not transient or attempt >= self.config.get("retry_budget", 2):
+                    if not transient or attempt >= retry_budget:
                         raise
                     await asyncio.sleep(min(self.config.get("retry_backoff", 0.1) * 2**attempt, 5))
                     continue
