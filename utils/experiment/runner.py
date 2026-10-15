@@ -3,7 +3,6 @@ import platform
 import re
 import sqlite3
 import subprocess
-from contextlib import closing
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +13,7 @@ from utils.core.schema import ExperimentContext
 from utils.data.dataset import load_dataset, permutation
 from utils.evaluation.metrics import aggregate, evaluate_case
 from utils.experiment.batch import BatchClient, BatchPending, validate_batch
+from utils.experiment.cache import import_response_cache
 from utils.experiment.llm import TracedProvider
 from utils.experiment.llm import create_provider as create
 from utils.experiment.storage import (
@@ -81,35 +81,6 @@ def planned_calls(model, cases):
     return len(cases) * {"iagent": 2, "i2agent": 5, "memrec": 2}[model] + (
         3 * len({c.user_id for c in cases}) if model == "memrec" else 0
     )
-
-
-def import_response_cache(source, store, config):
-    """Import exact-request responses, never completed predictions or an old fingerprint."""
-    source = Path(source)
-    if not source.is_absolute():
-        source = ROOT / source
-    previous = read_json(source / "manifest.json")
-    if previous["dataset_manifest_sha256"] != file_hash(config["manifest"]):
-        raise ValueError("response cache dataset mismatch")
-    if previous["config"]["provider"] != redact(config["provider"]):
-        raise ValueError("response cache provider mismatch")
-    with closing(
-        sqlite3.connect(f"file:{(source / 'state.sqlite').as_posix()}?mode=ro", uri=True)
-    ) as old:
-        responses = old.execute("SELECT key,response FROM responses").fetchall()
-        unresolved = old.execute(
-            "SELECT key,status FROM inflight WHERE status='dispatched'"
-        ).fetchall()
-    with store.db:
-        store.db.executemany("INSERT OR IGNORE INTO responses VALUES (?,?)", responses)
-        # Do not silently redispatch the request that was in flight at interruption.
-        store.db.executemany("INSERT OR IGNORE INTO inflight VALUES (?,?)", unresolved)
-    return {
-        "source_run": str(source),
-        "responses": len(responses),
-        "unresolved_requests": len(unresolved),
-        "accounting": "new requests only; prior charges remain in the source run",
-    }
 
 
 async def run_experiment(config, resume=False, dry_run=False, allow_paid=False):

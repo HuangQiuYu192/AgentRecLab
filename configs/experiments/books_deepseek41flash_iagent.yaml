@@ -1,5 +1,5 @@
 run_id: books_deepseek41flash_iagent_upstream
-reuse_responses_from: outputs/runs/books_deepseek41flash_iagent
+reuse_responses_from: outputs/cache/books_strict_schema_v1
 manifest: datasets/processed/books/dataset_manifest.json
 protocol_mode: controlled_comparison
 provider: autodl

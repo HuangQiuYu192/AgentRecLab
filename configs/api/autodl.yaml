@@ -10,5 +10,6 @@ timeout: 180
 retry_budget: 1
 json_mode: true
 capabilities:
-  supports_json_schema: false
+  # Verified with valid, adversarial and invalid-schema probes on 2026-10-15.
+  supports_json_schema: true
   supports_seed: false

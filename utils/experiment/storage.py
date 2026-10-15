@@ -52,6 +52,9 @@ class StateStore:
         CREATE TABLE IF NOT EXISTS responses (key TEXT PRIMARY KEY, response TEXT);
         CREATE TABLE IF NOT EXISTS accounting (id TEXT PRIMARY KEY, cost REAL, status TEXT);
         CREATE TABLE IF NOT EXISTS inflight (key TEXT PRIMARY KEY, status TEXT);
+        CREATE TABLE IF NOT EXISTS response_aliases (
+            key TEXT PRIMARY KEY, source_key TEXT NOT NULL, provenance TEXT NOT NULL
+        );
         """)
         self.db.commit()
 
@@ -80,6 +83,21 @@ class StateStore:
 
         with self.lock:
             row = self.db.execute("SELECT response FROM responses WHERE key=?", (key,)).fetchone()
+            if row is None:
+                row = self.db.execute(
+                    "SELECT r.response FROM response_aliases a "
+                    "JOIN responses r ON r.key=a.source_key WHERE a.key=?",
+                    (key,),
+                ).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def response_provenance(self, key):
+        with self.lock:
+            if self.db.execute("SELECT 1 FROM responses WHERE key=?", (key,)).fetchone():
+                return None
+            row = self.db.execute(
+                "SELECT provenance FROM response_aliases WHERE key=?", (key,)
+            ).fetchone()
         return json.loads(row[0]) if row else None
 
     def cache_response(self, key, result):

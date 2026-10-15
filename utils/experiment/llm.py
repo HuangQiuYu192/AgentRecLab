@@ -268,6 +268,7 @@ class TracedProvider:
                         "phase": phase,
                         "cache_key": key,
                         "cached": True,
+                        "cache_provenance": self.store.response_provenance(key),
                         "input_hash": digest(messages),
                         "output_hash": digest(result.text),
                         "raw_response_ref": result.raw_response_ref,

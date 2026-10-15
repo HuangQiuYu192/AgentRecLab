@@ -11,6 +11,7 @@ from utils.data.dataset import convert as convert_data
 from utils.data.dataset import freeze as freeze_data
 from utils.data.dataset import load_dataset
 from utils.evaluation.metrics import aggregate, compare_runs
+from utils.experiment.cache import prepare_response_cache
 from utils.experiment.runner import run_experiment
 from utils.experiment.storage import file_hash, read_json
 
@@ -96,6 +97,16 @@ def validate(manifest: Path = typer.Option(...)):
             "n_items": len(catalog),
         }
     )
+
+
+@app.command("prepare-cache")
+def prepare_cache(
+    config: Path = typer.Option(...),
+    source: Path = typer.Option(...),
+    out: Path = typer.Option(...),
+):
+    """Prepare and validate a cache snapshot offline; never dispatch API requests."""
+    display(prepare_response_cache(source, out, load_run(config)))
 
 
 @app.command()

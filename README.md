@@ -135,9 +135,17 @@ pkl 是上游发布的 Python pickle 序列化文件，`pandas.read_pickle` 读�
 
 Books5 和全量 Books 配置采用 `invalid_prediction_policy: upstream`。它刻意复现发布代码的行为：只在真实测试目标未出现在排序结果中时触发纠正；目标存在时，即使列表遗漏其他候选、重复或包含其他 ID，也按目标首次出现的位置计分。这个流程依赖测试标签，标签不会写入提示词，但会影响是否追加请求，因此不能称为无标签的推理协议。默认 `fail` 策略仍使用完整候选校验，不能与 upstream 结果混为同一协议。上游最终失败案例从平均指标排除；本项目同时保留 `exclude` 和 `count_as_failure` 两种统计。
 
-支持服务端 JSON Schema 的接口仍发送 `json_schema` 和 `strict: true`；AutoDL 未验证该能力，继续使用 JSON-object 和本地 schema 校验。它比上游仅提取 JSON 字段更严格，不保证与 GPT-4o-mini 的严格结构化输出完全等价。持续拒答或内容过滤仍可能失败。
+支持服务端 JSON Schema 的接口发送 `json_schema` 和 `strict: true`。2026-10-15 的 AutoDL 测试中，正常和冲突提示均遵守 Schema，无效 Schema 返回 400，因此已开启该接口的严格 Schema 能力。持续拒答或内容过滤仍可能失败。
 
-新版实验使用 `_upstream` 结尾的新 run ID。全量 iAgent 通过 `reuse_responses_from` 从旧运行导入响应缓存，按完整请求散列复用，再重新执行新流程和评估；不复制旧预测，不修改旧 fingerprint。导入会验证数据与 provider 一致，并保留结果不明的请求，避免重复扣费。新目录的费用仅统计新请求，历史费用留在源运行，导入来源记录在 `manifest.json` 的 `cache_import` 中。全量配置要求旧 iAgent 运行目录存在；首次从零启动可删除 `reuse_responses_from`。
+新版实验使用 `_upstream` 结尾的新 run ID。全量 iAgent 的 `reuse_responses_from` 指向预先验证的缓存快照 `outputs/cache/books_strict_schema_v1`；不复制旧预测、不修改旧 fingerprint。允许的跨格式变化仅为同一 provider 开启严格 Schema；模型、endpoint、温度、思考参数等变化均拒绝迁移。逐条校验源请求散列并解析 JSON、校验字段结构，排除坏响应；对合格旧响应建立新请求键到旧键的显式别名，原始内容不改写。回放 trace 的 `cache_provenance` 标注 `legacy_json_object_validated`，不能把这些旧响应称为服务端严格 Schema 新生成的结果。恢复结果属于旧格式合格输出与新严格 Schema 输出混合的协议。结果不明请求同时保护新旧请求键，禁止自动重发。快照带数据库校验和，修改后拒绝使用。
+
+离线准备命令如下（不调用 API，输出目录必须尚不存在）：
+
+```bash
+python main.py prepare-cache --config configs/experiments/books_deepseek41flash_iagent.yaml --source outputs/runs/books_deepseek41flash_iagent --out outputs/cache/books_strict_schema_v1
+```
+
+新目录费用仅统计新请求，历史费用留在源运行；迁移报告记录在缓存的 `cache_manifest.json` 和新实验的 `manifest.json` → `cache_import`。首次从零启动可删除 `reuse_responses_from`。
 
 旧进程已暂停时，不要用 `SIGCONT` 把它当作新版继续运行：它内存里仍是旧实现。应结束旧启动器与旧 Python 进程后，再运行后台脚本启动新版；后台脚本在单个实验完成但含失败案例时仍会继续下一个模型，真正崩溃时停止。修改代码不表示自动恢复付费运行。
 
