@@ -120,6 +120,21 @@ pkl 是上游发布的 Python pickle 序列化文件，`pandas.read_pickle` 读�
 
 ## 测试集评估
 
+### 固定的 100 用户实验子集
+
+全量 Books 基线完成后，离线脚本 `scripts/build_books_subsets.py` 构造四个互不重叠的 100 用户子集，保存到 `datasets/processed/`：`books100_eval`（正常案例中按历史长度比例随机抽样）、`books100_hard`（两基线均未 Top-1 命中）、`books100_disagreement`（仅 iAgent 命中和仅 i²Agent 命中各 50 人）、`books100_retention`（两基线均命中）。先抽代表集，其余集合排除已选用户；种子 42，排除请求结果不明的案例。按完整数据历史长度三分位划分：短历史 ≤12，中历史 13–20，长历史 ≥21，各池内按比例抽样。
+
+每个目录包含独立的 `cases.parquet`、`interactions.parquet`、`catalog.parquet`、`dataset_manifest.json`，并附带 `baselines.jsonl`、`subset_summary.json` 和说明。`baselines.jsonl` 仅用于评估与比较，模型加载器不会读取它。保留原始案例、历史、候选顺序、目标和预热负样本；协同图只包含所选用户，并非全量协同图。整体分组和互斥性记录于 `datasets/processed/books100_partition_summary.json`。反复调参后这些集合应视为开发集，最终使用未参与调参的用户评估。
+
+对应的 `configs/experiments/books100_{eval,hard,disagreement,retention}.yaml` 默认使用 mock，便于无付费检查；已有基线结果直接从数据目录读取，不必重复调用：
+
+```bash
+python main.py validate --manifest datasets/processed/books100_eval/dataset_manifest.json
+python main.py run --config configs/experiments/books100_eval.yaml --dry-run
+```
+
+构建脚本默认读取全量 Books 和两个已完成运行，输出目录已存在时拒绝覆盖。
+
 实验运行完成后会自动生成 `metrics.json`。也可读取已有预测记录重新汇总指标：
 
 ```powershell

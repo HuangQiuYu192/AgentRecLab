@@ -1,0 +1,10 @@
+run_id: books100_retention
+manifest: datasets/processed/books100_retention/dataset_manifest.json
+protocol_mode: controlled_comparison
+provider: mock
+model: iagent
+seed: 42
+max_calls: 1000
+concurrency: 1
+invalid_prediction_policy: upstream
+use_batch: false
